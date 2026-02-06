@@ -2,7 +2,7 @@
 
 Sistema de calendário de aulas para o SENAI desenvolvido com React + Vite.
 
-## 🚀 Tecnologias
+## Tecnologias
 
 - **React 18** - Biblioteca JavaScript para interfaces
 - **Vite** - Build tool e dev server
@@ -10,7 +10,7 @@ Sistema de calendário de aulas para o SENAI desenvolvido com React + Vite.
 - **Tailwind CSS** - Framework CSS utility-first
 - **React Router DOM** - Roteamento
 
-## 📁 Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 frontend/
@@ -28,13 +28,13 @@ frontend/
 └── tailwind.config.js    # Configuração do Tailwind
 ```
 
-## 🛠️ Instalação
+## Instalação
 
 ```bash
 npm install
 ```
 
-## 🏃 Desenvolvimento
+## Desenvolvimento
 
 ```bash
 npm run dev
@@ -42,19 +42,19 @@ npm run dev
 
 A aplicação estará disponível em `http://localhost:5173`
 
-## 📦 Build
+## Build
 
 ```bash
 npm run build
 ```
 
-## 👀 Preview
+## Preview
 
 ```bash
 npm run preview
 ```
 
-## 📝 Scripts Disponíveis
+## Scripts Disponíveis
 
 - `npm run dev` - Inicia o servidor de desenvolvimento
 - `npm run build` - Cria o build de produção
