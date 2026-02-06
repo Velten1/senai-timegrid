@@ -1,20 +1,66 @@
+import { useState } from 'react'
+import { Header } from '../components/header/Header'
+import { Sidebar } from '../components/sidebar/Sidebar'
+import { useFilters } from '../hooks/useFilters'
+import { useCalendar } from '../hooks/useCalendar'
+import { classes, getCompleteClasses } from '../data/mockData'
+
 function Home() {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Load and transform data
+  const completeClasses = getCompleteClasses(classes)
+
+  // Apply filters
+  const { filters, filteredClasses, updateFilter, clearFilters } =
+    useFilters(completeClasses)
+
+  // Calendar management
+  const {
+    currentView,
+    setCurrentView,
+    classesByDay,
+  } = useCalendar(filteredClasses)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">
-            SENAI MAP
-          </h1>
-          <p className="text-gray-400 mb-8">
-            Localização de Cursos e Horários
-          </p>
-          <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-8">
-            <p className="text-gray-300">
-              Sistema de calendário de aulas em desenvolvimento
-            </p>
-          </div>
-        </div>
+      <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+
+      <div className="flex">
+        <Sidebar
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          filters={filters}
+          onFilterChange={updateFilter}
+          onClearFilters={clearFilters}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+
+        <main className="flex-1 p-4 lg:p-8">
+          {currentView === 'weekly' && (
+            <div className="space-y-6">
+              {/* TODO: Add NavWeek component */}
+              {/* TODO: Add SemanalGrid component */}
+              <div className="text-white">
+                <p>Weekly view - Components to be added</p>
+                <p>Classes by day: {classesByDay.flat().length} total</p>
+              </div>
+            </div>
+          )}
+
+          {currentView === 'monthly' && (
+            <div className="text-white">
+              <p>Monthly view - To be implemented</p>
+            </div>
+          )}
+
+          {currentView === 'grid' && (
+            <div className="text-white">
+              <p>Grid view - To be implemented</p>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   )
