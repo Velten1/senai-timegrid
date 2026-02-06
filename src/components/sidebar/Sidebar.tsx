@@ -2,16 +2,19 @@ import type { CalendarView, Filters } from '../../types'
 import { ViewSelector } from './ViewSelector'
 import { FiltersComponent } from './Filters'
 
+// props interface defining what data this component needs
 interface SidebarProps {
-  currentView: CalendarView
-  onViewChange: (view: CalendarView) => void
-  filters: Filters
-  onFilterChange: (key: keyof Filters, value: string | undefined) => void
-  onClearFilters: () => void
-  isOpen: boolean
-  onClose: () => void
+  currentView: CalendarView // which calendar view is currently selected
+  onViewChange: (view: CalendarView) => void // function to change the view
+  filters: Filters // current filter values
+  onFilterChange: (key: keyof Filters, value: string | undefined) => void // function to update a filter
+  onClearFilters: () => void // function to reset all filters
+  isOpen: boolean // whether sidebar is open (for mobile)
+  onClose: () => void // function to close sidebar (for mobile)
 }
 
+// sidebar component that contains view selector and filters
+// responsive: overlay on mobile, always visible on desktop
 export function Sidebar({
   currentView,
   onViewChange,
@@ -23,7 +26,9 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <>
-      {/* Overlay for mobile */}
+      {/* dark overlay that appears behind sidebar on mobile when open */}
+      {/* clicking it closes the sidebar */}
+      {/* hidden on desktop (lg:hidden) */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -31,7 +36,8 @@ export function Sidebar({
         />
       )}
 
-      {/* Sidebar */}
+      {/* main sidebar container */}
+      {/* fixed on mobile (slides in/out), sticky on desktop (always visible) */}
       <aside
         className={`
           fixed lg:sticky top-0 left-0 h-screen w-80 bg-gradient-to-b from-slate-900 to-slate-950
@@ -41,11 +47,12 @@ export function Sidebar({
         `}
       >
         <div className="p-6 space-y-6">
-          {/* Header */}
+          {/* header section with app title and close button */}
           <div className="flex items-center justify-between lg:justify-start">
             <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
               SENAI MAP
             </h2>
+            {/* close button only visible on mobile */}
             <button
               onClick={onClose}
               className="lg:hidden text-gray-400 hover:text-white transition-colors"
@@ -66,15 +73,17 @@ export function Sidebar({
             </button>
           </div>
 
+          {/* subtitle */}
           <p className="text-sm text-gray-400">
             Localização de Cursos e Horários
           </p>
 
-          {/* View Selector */}
+          {/* component that lets user choose between weekly/monthly/grid view */}
           <ViewSelector currentView={currentView} onViewChange={onViewChange} />
 
-          {/* Filters */}
+          {/* separator and filters section */}
           <div className="border-t border-slate-800 pt-6">
+            {/* component with all filter inputs (search, course, teacher, period) */}
             <FiltersComponent
               filters={filters}
               onFilterChange={onFilterChange}

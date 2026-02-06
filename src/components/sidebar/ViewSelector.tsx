@@ -1,28 +1,34 @@
 import type { CalendarView } from '../../types'
 
+// props interface for view selector component
 interface ViewSelectorProps {
-  currentView: CalendarView
-  onViewChange: (view: CalendarView) => void
+  currentView: CalendarView // which view is currently selected
+  onViewChange: (view: CalendarView) => void // function called when user clicks a view button
 }
 
+// array of available calendar views with their display info
 const views: { id: CalendarView; label: string; icon: string }[] = [
   { id: 'weekly', label: 'Semanal', icon: '📅' },
   { id: 'monthly', label: 'Mensal', icon: '🗓️' },
   { id: 'grid', label: 'Grade Horária', icon: '📊' },
 ]
 
+// component that displays buttons to switch between calendar views
+// highlights the currently active view with different styling
 export function ViewSelector({ currentView, onViewChange }: ViewSelectorProps) {
   return (
     <div>
       <h3 className="text-lg font-semibold text-white mb-3">Vista</h3>
       <div className="space-y-2">
+        {/* map through all available views and create a button for each */}
         {views.map((view) => (
           <button
             key={view.id}
-            onClick={() => onViewChange(view.id)}
+            onClick={() => onViewChange(view.id)} // call parent function when clicked
             className={`
               w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all
               ${
+                // if this view is currently active, use highlighted styles
                 currentView === view.id
                   ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                   : 'bg-slate-800/50 text-gray-300 border border-slate-700/50 hover:bg-slate-800 hover:border-slate-600'
