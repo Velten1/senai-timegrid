@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Course, CompleteClass } from '../../types'
 import { getDayName } from '../../utils/formatting'
+import { CourseIcon } from './CourseIcon'
 
 interface CourseModalProps {
   course: Course
@@ -17,6 +18,19 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
 
   // state to track which day is currently selected (defaults to monday)
   const [selectedDay, setSelectedDay] = useState<number>(1)
+
+  // auto-select current day when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const today = new Date().getDay() // 0 = domingo, 1 = segunda, etc.
+      // adjust to match our weekDays array (monday = 1, tuesday = 2, etc.)
+      // if sunday (0), we'll keep it as monday (1) since we don't show sunday
+      const adjustedDay = today === 0 ? 1 : today
+      if (adjustedDay >= 1 && adjustedDay <= 6) {
+        setSelectedDay(adjustedDay)
+      }
+    }
+  }, [isOpen])
 
   // group classes by day of week for better organization
   const classesByDay = classes.reduce((acc, classItem) => {
@@ -44,65 +58,61 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
 
   return (
     <>
-      {/* overlay with blur effect for depth - animated fade in */}
+      {/* overlay - minimal backdrop */}
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 animate-modal-overlay"
+        className="fixed inset-0 bg-black/70 z-50 animate-modal-overlay"
         onClick={onClose}
       />
 
       {/* modal container */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="bg-gradient-to-br from-slate-900/98 via-slate-800/98 to-slate-900/98 backdrop-blur-2xl rounded-3xl border border-slate-700/50 shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto pointer-events-auto animate-modal-content"
+          className="bg-slate-900 rounded-xl border border-slate-700 shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto pointer-events-auto animate-modal-content"
           onClick={(e) => e.stopPropagation()}
-          style={{
-            boxShadow: `0 30px 100px ${course.color}40`,
-          }}
         >
-          {/* header with course color accent */}
-          <div
-            className="relative p-10 border-b border-slate-700/50"
-            style={{
-              background: `linear-gradient(135deg, ${course.color}20 0%, transparent 100%)`,
-            }}
-          >
-            {/* top accent bar - elegant gradient line */}
+          {/* header - clean and professional */}
+          <div className="relative p-8 border-b border-slate-700">
+            {/* top accent bar - simple line */}
             <div
-              className="absolute top-0 left-0 right-0 h-1.5 rounded-t-3xl"
+              className="absolute top-0 left-0 right-0 h-1"
               style={{
-                background: `linear-gradient(90deg, ${course.color} 0%, ${course.color}80 50%, transparent 100%)`,
+                backgroundColor: course.color,
               }}
             />
 
             <div className="flex items-start justify-between gap-6">
               <div className="flex items-start gap-6 flex-1">
-                {/* large icon with glow */}
+                {/* icon - minimal and clean */}
                 <div
-                  className="w-24 h-24 rounded-3xl flex items-center justify-center text-5xl shadow-2xl"
+                  className="w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{
-                    background: `linear-gradient(135deg, ${course.color} 0%, ${course.color}dd 100%)`,
-                    boxShadow: `0 15px 50px ${course.color}50`,
+                    backgroundColor: `${course.color}15`,
                   }}
                 >
-                  {course.icon}
+                  <CourseIcon
+                    iconName={course.icon}
+                    size={32}
+                    color={course.color}
+                  />
                 </div>
                 <div className="flex-1 pt-2">
-                  {/* course name - very prominent */}
-                  <h2 className="text-4xl font-bold text-white mb-3">
+                  {/* course name - prominent but professional */}
+                  <h2 className="text-3xl font-bold text-white mb-2">
                     {course.name}
                   </h2>
-                  {/* course description - better readability */}
+                  {/* course description */}
                   {course.description && (
-                    <p className="text-gray-300 text-lg leading-relaxed">
+                    <p className="text-gray-400 text-base leading-relaxed">
                       {course.description}
                     </p>
                   )}
                 </div>
               </div>
-              {/* close button */}
+              {/* close button - larger for touch */}
               <button
                 onClick={onClose}
-                className="p-3 rounded-xl text-gray-400 hover:text-white hover:bg-slate-700/50 transition-all"
+                className="p-4 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 active:scale-95 transition-all touch-manipulation"
+                style={{ minWidth: '48px', minHeight: '48px' }}
               >
                 <svg
                   className="w-6 h-6"
@@ -122,28 +132,26 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
           </div>
 
           {/* content with day selection tabs */}
-          <div className="p-10">
-            {/* day selection tabs */}
-            <div className="flex flex-wrap gap-3 mb-8 pb-6 border-b border-slate-700/50">
+          <div className="p-8">
+            {/* day selection tabs - minimal design */}
+            <div className="flex flex-wrap gap-3 mb-8 pb-6 border-b border-slate-700">
               {weekDays.map((day) => {
                 const isSelected = selectedDay === day.dayOfWeek
                 return (
                   <button
                     key={day.dayOfWeek}
                     onClick={() => setSelectedDay(day.dayOfWeek)}
-                    className="px-6 py-3 rounded-xl font-semibold text-sm lg:text-base transition-all duration-200"
+                    className="px-8 py-4 rounded-lg font-semibold text-base lg:text-lg transition-all duration-200 active:scale-95 touch-manipulation"
                     style={{
                       backgroundColor: isSelected
                         ? course.color
-                        : 'rgba(51, 65, 85, 0.3)',
+                        : 'rgba(51, 65, 85, 0.5)',
                       color: isSelected ? 'white' : 'rgb(148, 163, 184)',
                       border: isSelected
-                        ? `2px solid ${course.color}`
-                        : '2px solid rgba(51, 65, 85, 0.5)',
-                      transform: isSelected ? 'scale(1.05)' : 'scale(1)',
-                      boxShadow: isSelected
-                        ? `0 4px 20px ${course.color}40`
-                        : 'none',
+                        ? `1px solid ${course.color}`
+                        : '1px solid rgba(51, 65, 85, 0.5)',
+                      minHeight: '48px',
+                      minWidth: '120px',
                     }}
                   >
                     <span className="hidden sm:inline">{day.name}</span>
@@ -168,7 +176,7 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
                   {selectedDayClasses.map((classItem) => (
                     <div
                       key={classItem.id}
-                      className="p-6 rounded-2xl bg-slate-800/50 border border-slate-700/50 backdrop-blur-sm hover:bg-slate-800/70 transition-all"
+                      className="p-6 rounded-lg bg-slate-800/50 border border-slate-700 hover:bg-slate-800/70 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
@@ -258,7 +266,7 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
                   ))}
                 </div>
               ) : (
-                <div className="p-8 rounded-2xl bg-slate-800/50 border border-slate-700/50 backdrop-blur-sm text-center">
+                <div className="p-8 rounded-lg bg-slate-800/50 border border-slate-700 text-center">
                   <p className="text-gray-400 text-lg">
                     Nenhuma aula marcada para este dia
                   </p>
@@ -267,14 +275,15 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
             </section>
           </div>
 
-          {/* footer with elegant button */}
-          <div className="p-6 border-t border-slate-700/50 flex justify-end bg-slate-900/30">
+          {/* footer - minimal button */}
+          <div className="p-6 border-t border-slate-700 flex justify-end bg-slate-900/50">
             <button
               onClick={onClose}
-              className="px-10 py-4 rounded-xl font-semibold text-white transition-all duration-200 hover:scale-105 shadow-xl"
+              className="px-12 py-5 rounded-lg font-semibold text-lg text-white transition-all duration-200 hover:opacity-90 active:scale-95 touch-manipulation"
               style={{
-                background: `linear-gradient(135deg, ${course.color} 0%, ${course.color}dd 100%)`,
-                boxShadow: `0 8px 30px ${course.color}60`,
+                backgroundColor: course.color,
+                minHeight: '56px',
+                minWidth: '140px',
               }}
             >
               Fechar

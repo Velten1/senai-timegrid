@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import type { Course } from '../../types'
 import { CourseModal } from './CourseModal'
+import { CourseIcon } from './CourseIcon'
 import { getCompleteClasses } from '../../data/mockData'
 import { classes } from '../../data/mockData'
 
@@ -57,41 +58,34 @@ export function CampusMap({ courses }: CampusMapProps) {
             <button
               key={course.id}
               onClick={() => handleCourseClick(course)}
-              className="group relative overflow-hidden rounded-3xl transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl animate-fade-in-up opacity-0"
+              className="group relative overflow-hidden rounded-xl transition-all duration-200 hover:shadow-lg animate-fade-in-up opacity-0 touch-manipulation"
               style={{
                 animationDelay: `${index * 150}ms`,
                 animationFillMode: 'forwards',
               }}
             >
-              {/* card background with gradient and glassmorphism */}
+              {/* card background - clean and professional */}
               <div
-                className="relative h-[280px] lg:h-[320px] rounded-3xl p-6 lg:p-8 flex flex-col justify-between backdrop-blur-sm border-2 transition-all duration-500"
+                className="relative h-[280px] lg:h-[320px] rounded-xl p-6 lg:p-8 flex flex-col justify-between border transition-all duration-200 bg-slate-800/50 hover:bg-slate-800/70"
                 style={{
-                  background: `linear-gradient(135deg, ${course.color}15 0%, ${course.color}08 50%, transparent 100%)`,
-                  borderColor: `${course.color}40`,
-                  boxShadow: `0 20px 60px ${course.color}20`,
+                  borderColor: `${course.color}30`,
                 }}
               >
-                {/* glow effect on hover - creates elegant lighting */}
-                <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl blur-2xl"
-                  style={{
-                    background: course.color,
-                  }}
-                />
-
                 {/* content section */}
                 <div className="relative z-10 h-full flex flex-col">
-                  {/* icon section - compact but prominent */}
+                  {/* icon section - minimal and professional */}
                   <div className="mb-4">
                     <div
-                      className="w-16 h-16 lg:w-20 lg:h-20 rounded-xl flex items-center justify-center text-4xl lg:text-5xl mb-4 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3"
+                      className="w-14 h-14 lg:w-16 lg:h-16 rounded-lg flex items-center justify-center mb-4 transition-colors duration-200"
                       style={{
-                        background: `linear-gradient(135deg, ${course.color} 0%, ${course.color}dd 100%)`,
-                        boxShadow: `0 10px 40px ${course.color}50`,
+                        backgroundColor: `${course.color}15`,
                       }}
                     >
-                      {course.icon}
+                      <CourseIcon
+                        iconName={course.icon}
+                        size={32}
+                        color={course.color}
+                      />
                     </div>
                   </div>
 
@@ -127,11 +121,11 @@ export function CampusMap({ courses }: CampusMapProps) {
                     </div>
                   </div>
 
-                  {/* click indicator - shows it's interactive */}
+                  {/* click indicator - minimal arrow */}
                   <div className="absolute bottom-4 right-4 z-10">
-                    <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center group-hover:bg-white/20 transition-all">
+                    <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center group-hover:bg-slate-700 transition-colors">
                       <svg
-                        className="w-5 h-5 text-white"
+                        className="w-4 h-4 text-gray-300"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
