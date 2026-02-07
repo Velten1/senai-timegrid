@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { Course } from '../../types'
 import { CourseModal } from './CourseModal'
+import { getCompleteClasses } from '../../data/mockData'
+import { classes } from '../../data/mockData'
 
 interface CampusMapProps {
   courses: Course[]
@@ -14,6 +16,9 @@ export function CampusMap({ courses }: CampusMapProps) {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
+  // get all complete classes with related data (course, teacher, room)
+  const completeClasses = useMemo(() => getCompleteClasses(classes), [])
+
   // handle course card click - opens modal with course info
   const handleCourseClick = (course: Course) => {
     setSelectedCourse(course)
@@ -25,6 +30,12 @@ export function CampusMap({ courses }: CampusMapProps) {
     setIsModalOpen(false)
     setSelectedCourse(null)
   }
+
+  // get classes for the selected course
+  const selectedCourseClasses = useMemo(() => {
+    if (!selectedCourse) return []
+    return completeClasses.filter((classItem) => classItem.courseId === selectedCourse.id)
+  }, [selectedCourse, completeClasses])
 
   return (
     <>
@@ -97,7 +108,7 @@ export function CampusMap({ courses }: CampusMapProps) {
                   </div>
 
                   {/* info preview - shows what's available */}
-                  <div className="mt-auto space-y-2">
+                  <div className="mt-auto">
                     <div className="flex items-center gap-2 text-gray-400">
                       <svg
                         className="w-4 h-4"
@@ -113,22 +124,6 @@ export function CampusMap({ courses }: CampusMapProps) {
                         />
                       </svg>
                       <span className="text-xs">Horários disponíveis</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        />
-                      </svg>
-                      <span className="text-xs">Professores qualificados</span>
                     </div>
                   </div>
 
@@ -161,6 +156,7 @@ export function CampusMap({ courses }: CampusMapProps) {
       {selectedCourse && (
         <CourseModal
           course={selectedCourse}
+          classes={selectedCourseClasses}
           isOpen={isModalOpen}
           onClose={handleCloseModal}
         />
