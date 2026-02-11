@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import type { Course, CompleteClass } from '../../types'
-import { getDayName } from '../../utils/formatting'
 import { CourseIcon } from './CourseIcon'
 
 interface CourseModalProps {
@@ -32,15 +31,16 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
     }
   }, [isOpen])
 
-  // group classes by day of week for better organization
-  const classesByDay = classes.reduce((acc, classItem) => {
-    const dayName = getDayName(classItem.dayOfWeek)
-    if (!acc[dayName]) {
-      acc[dayName] = []
+  // group classes by day of week (numeric) for consistency with MiniWeeklyCalendar
+  // uses dayOfWeek number (0-6) as key instead of day name
+  const classesByDayOfWeek = classes.reduce((acc, classItem) => {
+    const dayOfWeek = classItem.dayOfWeek
+    if (!acc[dayOfWeek]) {
+      acc[dayOfWeek] = []
     }
-    acc[dayName].push(classItem)
+    acc[dayOfWeek].push(classItem)
     return acc
-  }, {} as Record<string, CompleteClass[]>)
+  }, {} as Record<number, CompleteClass[]>)
 
   // always show monday to saturday, even if there are no classes
   const weekDays = [
@@ -52,9 +52,9 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
     { dayOfWeek: 6, name: 'Sábado', shortName: 'Sáb' },
   ]
 
-  // get classes for the selected day
+  // get classes for the selected day using dayOfWeek number
+  const selectedDayClasses = classesByDayOfWeek[selectedDay] || []
   const selectedDayName = weekDays.find((d) => d.dayOfWeek === selectedDay)?.name || ''
-  const selectedDayClasses = classesByDay[selectedDayName] || []
 
   return (
     <>
