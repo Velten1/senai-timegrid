@@ -29,12 +29,7 @@ export function CourseScheduleTable({ classes, courseColor }: CourseScheduleTabl
 
   // handle class click - opens class detail modal
   const handleClassClick = (classItem: CompleteClass, day: Date) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const targetDate = new Date(day)
-    targetDate.setHours(0, 0, 0, 0)
-    const diffDays = Math.floor((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-    const dayLabel = getRelativeDayLabel(day, diffDays)
+    const dayLabel = getRelativeDayLabel(day)
     
     setSelectedClass(classItem)
     setSelectedDayLabel(dayLabel)
@@ -67,7 +62,7 @@ export function CourseScheduleTable({ classes, courseColor }: CourseScheduleTabl
 
           {/* day columns */}
           {days.map((day, dayIndex) => {
-            const label = getRelativeDayLabel(day, dayIndex)
+            const label = getRelativeDayLabel(day)
             return (
               <div key={dayIndex} className="col-span-1">
                 {/* day header */}

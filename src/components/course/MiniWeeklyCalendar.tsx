@@ -21,7 +21,7 @@ export function MiniWeeklyCalendar({ classes, courseColor, onCellClick }: MiniWe
       {/* day labels row */}
       <div className="grid grid-cols-5 gap-2 mb-2">
         {days.map((day, index) => {
-          const label = getRelativeDayLabel(day, index)
+          const label = getRelativeDayLabel(day)
           return (
             <div
               key={index}
