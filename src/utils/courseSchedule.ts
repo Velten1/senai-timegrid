@@ -30,7 +30,7 @@ export function getNextFiveDays(): Date[] {
 
 // get label for a day relative to today
 // returns "Hoje", "Amanhã" or day name (always shows day name from 3rd day onwards)
-export function getRelativeDayLabel(date: Date, index: number): string {
+export function getRelativeDayLabel(date: Date): string {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   
