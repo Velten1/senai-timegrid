@@ -41,8 +41,8 @@ export function ClassDetailModal({ classItem, dayLabel, isOpen, onClose }: Class
               {/* close button */}
               <button
                 onClick={onClose}
-                className="p-3 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 active:scale-95 transition-all touch-manipulation"
-                style={{ minWidth: '44px', minHeight: '44px' }}
+                className="p-5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 active:scale-95 transition-all touch-manipulation"
+                style={{ minWidth: '56px', minHeight: '56px' }}
               >
                 <svg
                   className="w-6 h-6"

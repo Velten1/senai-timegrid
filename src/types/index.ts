@@ -4,6 +4,7 @@ export interface Course {
   color: string;
   icon: string;
   description?: string;
+  modality: 'superior' | 'tecnico' | 'livre' | 'pos-graduacao';
 }
 
 export interface Teacher {
@@ -51,7 +52,5 @@ export interface Filters {
   period?: string;
   search?: string;
 }
-
-
 
 

@@ -82,10 +82,10 @@ export function CourseScheduleCard({ course, classes }: CourseScheduleCardProps)
         <div className="mt-auto">
           <button
             onClick={handleViewCalendar}
-            className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all duration-200 hover:opacity-90 active:scale-95 touch-manipulation"
+            className="w-full px-6 py-4 rounded-lg text-base lg:text-lg font-bold text-white transition-all duration-200 hover:opacity-90 active:scale-95 touch-manipulation"
             style={{
               backgroundColor: course.color,
-              minHeight: '40px',
+              minHeight: '56px',
             }}
           >
             Ver Calendário

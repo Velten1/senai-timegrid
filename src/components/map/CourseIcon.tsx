@@ -1,4 +1,17 @@
-import { Code, Zap, Cog, Settings, LucideIcon } from 'lucide-react'
+import {
+  Code,
+  Zap,
+  Cog,
+  Settings,
+  FileSpreadsheet,
+  FileText,
+  Presentation,
+  Briefcase,
+  Database,
+  Server,
+  Brain,
+  LucideIcon,
+} from 'lucide-react'
 
 interface CourseIconProps {
   iconName: string
@@ -15,6 +28,13 @@ export function CourseIcon({ iconName, size = 24, className = '', color }: Cours
     Zap,
     Cog,
     Settings,
+    FileSpreadsheet,
+    FileText,
+    Presentation,
+    Briefcase,
+    Database,
+    Server,
+    Brain,
   }
 
   const IconComponent = iconMap[iconName] || Code

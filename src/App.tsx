@@ -1,11 +1,13 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Home from './pages/Home'
+import Welcome from './pages/Welcome'
+import CoursesByModality from './pages/CoursesByModality'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Welcome />} />
+        <Route path="/cursos/:modality" element={<CoursesByModality />} />
       </Routes>
     </BrowserRouter>
   )

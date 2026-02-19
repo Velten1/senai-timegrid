@@ -13,9 +13,8 @@ interface CourseModalProps {
 // shows course details, schedules with day selection tabs
 // modern design optimized for totem display
 export function CourseModal({ course, classes, isOpen, onClose }: CourseModalProps) {
-  if (!isOpen) return null
-
   // state to track which day is currently selected (defaults to monday)
+  // hooks must be called before any early return (Rules of Hooks)
   const [selectedDay, setSelectedDay] = useState<number>(1)
 
   // auto-select current day when modal opens
@@ -30,6 +29,8 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
       }
     }
   }, [isOpen])
+
+  if (!isOpen) return null
 
   // group classes by day of week (numeric) for consistency with MiniWeeklyCalendar
   // uses dayOfWeek number (0-6) as key instead of day name
@@ -111,8 +112,8 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
               {/* close button - larger for touch */}
               <button
                 onClick={onClose}
-                className="p-4 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 active:scale-95 transition-all touch-manipulation"
-                style={{ minWidth: '48px', minHeight: '48px' }}
+                className="p-5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 active:scale-95 transition-all touch-manipulation"
+                style={{ minWidth: '56px', minHeight: '56px' }}
               >
                 <svg
                   className="w-6 h-6"
@@ -141,7 +142,7 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
                   <button
                     key={day.dayOfWeek}
                     onClick={() => setSelectedDay(day.dayOfWeek)}
-                    className="px-8 py-4 rounded-lg font-semibold text-base lg:text-lg transition-all duration-200 active:scale-95 touch-manipulation"
+                    className="px-10 py-5 rounded-lg font-bold text-lg lg:text-xl transition-all duration-200 active:scale-95 touch-manipulation"
                     style={{
                       backgroundColor: isSelected
                         ? course.color
@@ -150,8 +151,8 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
                       border: isSelected
                         ? `1px solid ${course.color}`
                         : '1px solid rgba(51, 65, 85, 0.5)',
-                      minHeight: '48px',
-                      minWidth: '120px',
+                      minHeight: '56px',
+                      minWidth: '140px',
                     }}
                   >
                     <span className="hidden sm:inline">{day.name}</span>

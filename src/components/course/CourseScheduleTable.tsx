@@ -48,13 +48,16 @@ export function CourseScheduleTable({ classes, courseColor }: CourseScheduleTabl
         <div className="grid grid-cols-6 gap-2">
           {/* first column: time slots */}
           <div className="col-span-1">
+            {/* empty header spacer to align with day column headers */}
+            <div className="text-center text-sm font-medium text-gray-300 mb-2">&nbsp;</div>
             <div className="space-y-2">
               {timeSlots.map((slot, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-center h-24 text-sm font-medium text-gray-400"
+                  className="flex flex-col items-center justify-center h-24 text-sm font-medium text-gray-400"
                 >
-                  {slot.startTime.replace(':', 'h')} {slot.endTime.replace(':', 'h')}
+                  <span>{slot.startTime.replace(':', 'h')}</span>
+                  <span>{slot.endTime.replace(':', 'h')}</span>
                 </div>
               ))}
             </div>

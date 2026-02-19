@@ -116,3 +116,29 @@ export function getClassesForTimeSlotAndDay(
       classItem.endTime === endTime
   )
 }
+
+// period type for filtering classes
+export type Period = 'manha' | 'tarde' | 'noite' | null
+
+// filter classes by period based on start time
+// manhã: 00h até 12h
+// tarde: 12h até 18h
+// noite: 18h até 23h59
+export function filterClassesByPeriod(classes: CompleteClass[], period: Period): CompleteClass[] {
+  if (!period) return classes
+
+  return classes.filter((classItem) => {
+    const [startHour] = classItem.startTime.split(':').map(Number)
+
+    switch (period) {
+      case 'manha':
+        return startHour >= 0 && startHour < 12
+      case 'tarde':
+        return startHour >= 12 && startHour < 18
+      case 'noite':
+        return startHour >= 18 && startHour < 24
+      default:
+        return true
+    }
+  })
+}
