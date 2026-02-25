@@ -1,22 +1,17 @@
-import { useMemo } from 'react'
-import type { Course } from '../../types'
+import type { Course, CompleteClass } from '../../types'
 import type { Period } from '../../utils/courseSchedule'
 import { CourseScheduleCard } from '../course/CourseScheduleCard'
-import { getCompleteClasses } from '../../data/mockData'
-import { classes } from '../../data/mockData'
 import { filterClassesByPeriod } from '../../utils/courseSchedule'
 
 interface CampusMapProps {
   courses: Course[]
   period: Period
+  completeClasses: CompleteClass[]
 }
 
 // course grid component - displays courses with mini weekly calendars
 // each course is shown as a card with its schedule for the next 5 days
-export function CampusMap({ courses, period }: CampusMapProps) {
-  // get all complete classes with related data (course, teacher, room)
-  const completeClasses = useMemo(() => getCompleteClasses(classes), [])
-
+export function CampusMap({ courses, period, completeClasses }: CampusMapProps) {
   return (
     <div className="w-full">
       {/* course cards grid - responsive layout */}
