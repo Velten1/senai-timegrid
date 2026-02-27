@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { CompleteClass } from '../../types'
-import { getNextFiveDays, getRelativeDayLabel } from '../../utils/courseSchedule'
-import { getRelevantClasses, getTimeSlots, getClassesForTimeSlotAndDay } from '../../utils/courseSchedule'
+import { getNextFiveDays, getRelativeDayLabel, getTimeSlots, getClassesForTimeSlotAndDay } from '../../utils/courseSchedule'
 import { ClassDetailModal } from './ClassDetailModal'
 
 interface CourseScheduleTableProps {
