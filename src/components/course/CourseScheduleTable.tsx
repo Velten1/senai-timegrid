@@ -11,13 +11,14 @@ interface CourseScheduleTableProps {
 
 // compact schedule table component for use inside course cards
 // displays time slots as rows and days as columns
-// filters classes to show only relevant ones (not past)
+// shows all classes for the week (not filtered by time)
 export function CourseScheduleTable({ classes, courseColor }: CourseScheduleTableProps) {
-  // filter classes to show only relevant ones (not past)
-  const relevantClasses = useMemo(() => getRelevantClasses(classes), [classes])
+  // Use all classes (not filtered) to show complete weekly schedule
+  // This ensures all slots are visible, not just future ones
+  const relevantClasses = useMemo(() => classes, [classes])
   
-  // get all unique time slots from relevant classes
-  const timeSlots = useMemo(() => getTimeSlots(relevantClasses), [relevantClasses])
+  // get all unique time slots from all classes
+  const timeSlots = useMemo(() => getTimeSlots(classes), [classes])
   
   // get next 5 days
   const days = useMemo(() => getNextFiveDays(), [])
@@ -89,7 +90,8 @@ export function CourseScheduleTable({ classes, courseColor }: CourseScheduleTabl
                         onClick={() => hasClasses && dayClasses[0] && handleClassClick(dayClasses[0], day)}
                         disabled={!hasClasses}
                         className={`
-                          w-full h-24 rounded-lg border transition-all duration-200 relative overflow-hidden
+                          w-full min-h-24 h-24 rounded-lg border transition-all duration-200 relative overflow-hidden
+                          flex items-center justify-center
                           ${hasClasses
                             ? 'bg-slate-700/50 border-slate-600/50 cursor-pointer hover:bg-slate-700/70 active:scale-[0.98] touch-manipulation'
                             : 'bg-slate-800/30 border-slate-700/50 cursor-default'
@@ -97,15 +99,15 @@ export function CourseScheduleTable({ classes, courseColor }: CourseScheduleTabl
                         `}
                       >
                         {/* class content */}
-                        {hasClasses && (
-                          <div className="p-2 h-full flex flex-col justify-center">
+                        {hasClasses ? (
+                          <div className="p-2 w-full h-full flex flex-col justify-center">
                             <div className="space-y-1">
                               <p className="text-xs font-bold text-white line-clamp-1 text-center">
                                 {dayClasses[0].title}
                               </p>
                               <div className="flex items-center justify-center gap-1.5 text-[10px] text-gray-300">
                                 <svg
-                                  className="w-3 h-3"
+                                  className="w-3 h-3 flex-shrink-0"
                                   style={{ color: courseColor }}
                                   fill="none"
                                   stroke="currentColor"
@@ -122,7 +124,7 @@ export function CourseScheduleTable({ classes, courseColor }: CourseScheduleTabl
                               </div>
                               <div className="flex items-center justify-center gap-1.5 text-[10px] text-gray-400">
                                 <svg
-                                  className="w-3 h-3"
+                                  className="w-3 h-3 flex-shrink-0"
                                   style={{ color: courseColor }}
                                   fill="none"
                                   stroke="currentColor"
@@ -138,6 +140,12 @@ export function CourseScheduleTable({ classes, courseColor }: CourseScheduleTabl
                                 <span className="line-clamp-1">{dayClasses[0].teacher.name}</span>
                               </div>
                             </div>
+                          </div>
+                        ) : (
+                          <div className="p-2 w-full h-full flex items-center justify-center">
+                            <p className="text-[10px] text-gray-500 text-center leading-tight">
+                              Nenhuma aula<br />programada
+                            </p>
                           </div>
                         )}
                       </button>

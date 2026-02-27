@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Welcome from './pages/Welcome'
+import Home from './pages/Home'
 import CoursesByModality from './pages/CoursesByModality'
 import { ExcelDataProvider } from './contexts/ExcelDataContext'
 
@@ -8,7 +8,7 @@ function App() {
     <ExcelDataProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Welcome />} />
+          <Route path="/" element={<Home />} />
           <Route path="/cursos/:modality" element={<CoursesByModality />} />
         </Routes>
       </BrowserRouter>

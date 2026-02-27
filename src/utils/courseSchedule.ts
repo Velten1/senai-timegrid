@@ -14,15 +14,29 @@ export function hasClassesOnDay(classes: CompleteClass[], day: Date): boolean {
   return getClassesForDay(classes, day).length > 0
 }
 
-// get array with next 5 days starting from today
+// get array with next 5 days starting from today (excluding Sundays)
 // returns array of date objects
 export function getNextFiveDays(): Date[] {
   const days: Date[] = []
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   
-  for (let i = 0; i < 5; i++) {
-    days.push(addDays(today, i))
+  let currentDay = today
+  let daysAdded = 0
+  
+  // Skip if today is Sunday, start from Monday
+  if (currentDay.getDay() === 0) {
+    currentDay = addDays(currentDay, 1)
+  }
+  
+  // Get next 5 days (excluding Sundays)
+  while (daysAdded < 5) {
+    // Skip Sundays (day 0)
+    if (currentDay.getDay() !== 0) {
+      days.push(new Date(currentDay))
+      daysAdded++
+    }
+    currentDay = addDays(currentDay, 1)
   }
   
   return days

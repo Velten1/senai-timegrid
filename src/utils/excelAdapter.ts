@@ -85,6 +85,11 @@ export function adaptExcelData(excelData: ExcelData): {
     const teacher = teacherMap.get(pc.teacherName)
     const room = roomMap.get(pc.labRoom)
 
+    // Converter dayOfWeek do Excel (1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex)
+    // para formato JavaScript (0=Dom, 1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex, 6=Sab)
+    // Como o Excel só tem Seg-Sex (1-5), mapeamos diretamente: Excel 1 → JS 1, Excel 2 → JS 2, etc.
+    const jsDayOfWeek = pc.dayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6
+
     return {
       id: `excel-${idx}-${pc.period}`,
       courseId: `${pc.turma}-${pc.group}-${pc.period}`,  // liga à turma+grupo+período
@@ -92,7 +97,7 @@ export function adaptExcelData(excelData: ExcelData): {
       roomId: room?.id || '',
       title: pc.courseCode,                          // sigla da matéria no slot
       description: `Prof. ${pc.teacherName || 'N/A'} | ${pc.labRoom || 'N/A'}`,
-      dayOfWeek: pc.dayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+      dayOfWeek: jsDayOfWeek,
       startTime: pc.startTime,
       endTime: pc.endTime,
       period: '2026.1',
