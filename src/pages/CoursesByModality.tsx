@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Header } from '../components/header/Header'
 import { CampusMap } from '../components/map/CampusMap'
 import { useExcelDataContext } from '../contexts/ExcelDataContext'
+import { useLivresDataContext } from '../contexts/LivresDataContext'
 import { courses as mockCourses, classes as mockClasses, getCompleteClasses } from '../data/mockData'
 import type { Period } from '../utils/courseSchedule'
 import type { Course } from '../types'
@@ -18,40 +19,56 @@ function CoursesByModality() {
   const { modality } = useParams<{ modality: string }>()
   const navigate = useNavigate()
   const [selectedPeriod, setSelectedPeriod] = useState<Period>(null)
+
+  // Dados de Cursos Técnicos (Excel manhã/tarde)
   const {
     courses: excelCourses,
     completeClasses: excelCompleteClasses,
-    loading,
+    loading: excelLoading,
   } = useExcelDataContext()
 
-  // Para modalidade "tecnico", usar dados do Excel (se disponíveis).
-  // Para outras modalidades, usar dados mock.
+  // Dados de Cursos Livres (Excel sábado)
+  const {
+    courses: livresCourses,
+    completeClasses: livresCompleteClasses,
+    loading: livresLoading,
+  } = useLivresDataContext()
+
+  // Flags para determinar qual fonte de dados usar
   const isExcelModality = modality === 'tecnico' && excelCourses.length > 0
+  const isLivresModality = modality === 'livre' && livresCourses.length > 0
+  const isLoading = (modality === 'tecnico' && excelLoading) || (modality === 'livre' && livresLoading)
+
+  // Cursos Livres não usam filtros de período
+  const showHeader = modality !== 'livre'
 
   const filteredCourses: Course[] = useMemo(() => {
     if (!modality) return []
     
+    // ── Cursos Técnicos (dados do Excel manhã/tarde) ──
     if (isExcelModality) {
-      // Filtrar turmas por período: se selecionou "manha", mostrar apenas turmas que têm aulas de manhã
-      // Se selecionou "tarde", mostrar apenas turmas que têm aulas de tarde
       if (selectedPeriod === 'manha' || selectedPeriod === 'tarde') {
-        // Extrair período da chave do curso (formato: "turma-grupo-periodo")
         return excelCourses.filter((course) => {
           const parts = course.id.split('-')
-          const coursePeriod = parts[parts.length - 1] // último elemento é o período
+          const coursePeriod = parts[parts.length - 1]
           return coursePeriod === selectedPeriod
         })
       }
-      // Se não há período selecionado, mostrar todas as turmas
       return excelCourses
+    }
+
+    // ── Cursos Livres (dados do Excel sábado) ──
+    if (isLivresModality) {
+      // Mostrar todos os cursos livres, sem filtragem
+      return livresCourses
     }
     
     return mockCourses.filter((c) => c.modality === modality)
-  }, [modality, isExcelModality, excelCourses, selectedPeriod])
+  }, [modality, isExcelModality, isLivresModality, excelCourses, livresCourses, selectedPeriod])
 
   const completeClasses = useMemo(() => {
+    // ── Cursos Técnicos ──
     if (isExcelModality) {
-      // Filtrar aulas por período também
       if (selectedPeriod === 'manha' || selectedPeriod === 'tarde') {
         return excelCompleteClasses.filter((classItem) => {
           const parts = classItem.courseId.split('-')
@@ -61,14 +78,22 @@ function CoursesByModality() {
       }
       return excelCompleteClasses
     }
-    return getCompleteClasses(mockClasses)
-  }, [isExcelModality, excelCompleteClasses, selectedPeriod])
 
-  if (!modality || (!loading && filteredCourses.length === 0)) {
+    // ── Cursos Livres ──
+    if (isLivresModality) {
+      return livresCompleteClasses
+    }
+
+    return getCompleteClasses(mockClasses)
+  }, [isExcelModality, isLivresModality, excelCompleteClasses, livresCompleteClasses, selectedPeriod])
+
+  if (!modality || (!isLoading && filteredCourses.length === 0)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-4xl text-white mb-4">Modalidade não encontrada</h1>
+          <h1 className="text-4xl text-white mb-4">
+            {isLoading ? 'Carregando...' : 'Modalidade não encontrada'}
+          </h1>
           <button
             onClick={() => navigate('/')}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -82,8 +107,8 @@ function CoursesByModality() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Header com filtros de período */}
-      <Header onPeriodChange={setSelectedPeriod} />
+      {/* Header com filtros de período — só para modalidades que precisam de filtro */}
+      {showHeader && <Header onPeriodChange={setSelectedPeriod} />}
 
       {/* Botão de voltar */}
       <div className="p-4 lg:p-6">
@@ -105,13 +130,13 @@ function CoursesByModality() {
 
       {/* Main content */}
       <main className="p-4 lg:p-8">
-        {loading && modality === 'tecnico' && (
+        {isLoading && (
           <div className="text-center text-gray-400 py-12">
             Carregando dados do Excel...
           </div>
         )}
 
-        {!loading && filteredCourses.length > 0 && (
+        {!isLoading && filteredCourses.length > 0 && (
           <CampusMap
             courses={filteredCourses}
             period={selectedPeriod}

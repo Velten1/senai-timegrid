@@ -18,7 +18,7 @@ export interface ParsedClass {
   courseCode: string
   teacherName: string
   labRoom: string
-  period: 'manha' | 'tarde' // Período do dia
+  period: 'manha' | 'tarde' | 'noite' | 'sabado' // Período do dia
 }
 
 export interface ExcelData {
@@ -29,7 +29,7 @@ export interface ExcelData {
 // ── Helpers ────────────────────────────────────────────
 
 async function downloadExcel(url: string, period: string): Promise<ArrayBuffer> {
-  console.log(`📥 Baixando Excel do SharePoint (${period})...`)
+  console.log(`Baixando Excel do SharePoint (${period})...`)
   const response = await fetch(url)
 
   if (!response.ok) {
@@ -37,7 +37,7 @@ async function downloadExcel(url: string, period: string): Promise<ArrayBuffer> 
   }
 
   const arrayBuffer = await response.arrayBuffer()
-  console.log(`✅ Excel baixado (${period}): ${(arrayBuffer.byteLength / 1024).toFixed(2)} KB`)
+  console.log(`Excel baixado (${period}): ${(arrayBuffer.byteLength / 1024).toFixed(2)} KB`)
   return arrayBuffer
 }
 
@@ -144,7 +144,7 @@ async function parseSingleExcelFile(url: string, periodLabel: string): Promise<E
   // Converter "MANHÃ" → "manha", "TARDE" → "tarde"
   const period: 'manha' | 'tarde' = periodLabel.toUpperCase().includes('MANH') ? 'manha' : 'tarde'
 
-  console.log(`📊 Abas disponíveis (${periodLabel}):`, workbook.SheetNames)
+  console.log(`Abas disponíveis (${periodLabel}):`, workbook.SheetNames)
 
   const allClasses: ParsedClass[] = []
   const announcements: string[] = []
@@ -157,15 +157,15 @@ async function parseSingleExcelFile(url: string, periodLabel: string): Promise<E
       raw: false,
     })
 
-    console.log(`\n📋 Aba "${sheetName}" (${period}) — ${data.length} linhas`)
+    console.log(`\nAba "${sheetName}" (${period}) — ${data.length} linhas`)
 
     const blocks = findHeaderBlocks(data)
     if (blocks.length === 0) {
-      console.log('   ⚠️ Nenhum cabeçalho T1/T2 encontrado — pulando aba')
+      console.log('   Nenhum cabeçalho T1/T2 encontrado — pulando aba')
       continue
     }
 
-    console.log(`   📌 ${blocks.length} bloco(s) de turma`)
+    console.log(`   ${blocks.length} bloco(s) de turma`)
 
     for (let bi = 0; bi < blocks.length; bi++) {
       const block = blocks[bi]
@@ -184,7 +184,7 @@ async function parseSingleExcelFile(url: string, periodLabel: string): Promise<E
         const turmaCell = String(row[block.turmaCol] || '').trim()
         if (turmaCell && isTurmaName(turmaCell)) {
           currentTurma = turmaCell
-          console.log(`   👥 Turma: ${currentTurma}`)
+          console.log(`   Turma: ${currentTurma}`)
         }
 
         // ── Ler coluna "Aula" ──
@@ -255,7 +255,7 @@ async function parseSingleExcelFile(url: string, periodLabel: string): Promise<E
 // ── Parser principal (combina Manhã + Tarde) ─────────────
 
 export async function parseExcelFile(): Promise<ExcelData> {
-  console.log('🔄 Iniciando parse de MANHÃ + TARDE...\n')
+  console.log('Iniciando parse de MANHÃ + TARDE...\n')
 
   // Baixar e parsear ambas as planilhas em paralelo
   const [manhaData, tardeData] = await Promise.all([
@@ -271,7 +271,7 @@ export async function parseExcelFile(): Promise<ExcelData> {
   const profs = [...new Set(allClasses.map((c) => c.teacherName).filter(Boolean))]
   const salas = [...new Set(allClasses.map((c) => c.labRoom).filter(Boolean))]
 
-  console.log(`\n✅ Parse concluído (MANHÃ + TARDE):`)
+  console.log(`\nParse concluído (MANHÃ + TARDE):`)
   console.log(`   Aulas: ${allClasses.length} (${manhaData.classes.length} manhã + ${tardeData.classes.length} tarde)`)
   console.log(`   Turmas (${turmas.length}): ${turmas.join(', ')}`)
   console.log(`   Professores (${profs.length}): ${profs.join(', ')}`)

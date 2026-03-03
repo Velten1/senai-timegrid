@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { parseExcelFile, type ExcelData } from '../services/excelService'
+import { parseExcelFileLivres } from '../services/excelServiceLivres'
+import type { ExcelData } from '../services/excelService'
 
-interface UseExcelDataOptions {
+interface UseExcelDataLivresOptions {
   pollingInterval?: number // ms – padrão 5 min
   enabled?: boolean
 }
 
-export function useExcelData(options: UseExcelDataOptions = {}) {
+export function useExcelDataLivres(options: UseExcelDataLivresOptions = {}) {
   const { pollingInterval = 5 * 60 * 1000, enabled = true } = options
 
   const [data, setData] = useState<ExcelData | null>(null)
@@ -18,17 +19,17 @@ export function useExcelData(options: UseExcelDataOptions = {}) {
   const loadData = useCallback(async () => {
     try {
       setLoading(true)
-      const result = await parseExcelFile()
+      const result = await parseExcelFileLivres()
       if (isMounted.current) {
         setData(result)
         setError(null)
         setLastUpdate(new Date())
-        console.log('Dados do Excel carregados com sucesso')
+        console.log('Dados do Excel (Cursos Livres) carregados com sucesso')
       }
     } catch (err) {
       if (isMounted.current) {
         setError(err instanceof Error ? err : new Error(String(err)))
-        console.error('Erro ao carregar dados do Excel:', err)
+        console.error('Erro ao carregar dados do Excel (Cursos Livres):', err)
       }
     } finally {
       if (isMounted.current) setLoading(false)

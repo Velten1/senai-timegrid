@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { CompleteClass } from '../../types'
-import { getNextFiveDays, getRelativeDayLabel, getTimeSlots, getClassesForTimeSlotAndDay } from '../../utils/courseSchedule'
+import { getNextFiveDays, getWeekDaysMondayToSaturday, getRelativeDayLabel, getTimeSlots, getClassesForTimeSlotAndDay } from '../../utils/courseSchedule'
 import { ClassDetailModal } from './ClassDetailModal'
 
 interface CourseScheduleTableProps {
@@ -11,6 +11,7 @@ interface CourseScheduleTableProps {
 // compact schedule table component for use inside course cards
 // displays time slots as rows and days as columns
 // shows all classes for the week (not filtered by time)
+// automatically detects Saturday classes and expands to Mon-Sat
 export function CourseScheduleTable({ classes, courseColor }: CourseScheduleTableProps) {
   // Use all classes (not filtered) to show complete weekly schedule
   // This ensures all slots are visible, not just future ones
@@ -19,8 +20,17 @@ export function CourseScheduleTable({ classes, courseColor }: CourseScheduleTabl
   // get all unique time slots from all classes
   const timeSlots = useMemo(() => getTimeSlots(classes), [classes])
   
-  // get next 5 days
-  const days = useMemo(() => getNextFiveDays(), [])
+  // Check if any class is on Saturday → use Mon-Sat view
+  const hasSaturdayClasses = useMemo(
+    () => classes.some((c) => c.dayOfWeek === 6),
+    [classes]
+  )
+
+  // get days to display: 5 days (Mon-Fri rolling) or 6 days (Mon-Sat fixed week)
+  const days = useMemo(
+    () => hasSaturdayClasses ? getWeekDaysMondayToSaturday() : getNextFiveDays(),
+    [hasSaturdayClasses]
+  )
 
   // state for class detail modal
   const [selectedClass, setSelectedClass] = useState<CompleteClass | null>(null)
@@ -45,7 +55,7 @@ export function CourseScheduleTable({ classes, courseColor }: CourseScheduleTabl
   return (
     <>
       <div className="w-full">
-        <div className="grid grid-cols-6 gap-2">
+        <div className={`grid ${hasSaturdayClasses ? 'grid-cols-7' : 'grid-cols-6'} gap-2`}>
           {/* first column: time slots */}
           <div className="col-span-1">
             {/* empty header spacer to align with day column headers */}

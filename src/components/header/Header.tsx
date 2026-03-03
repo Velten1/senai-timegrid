@@ -74,6 +74,20 @@ export function Header({ onPeriodChange }: HeaderProps) {
           >
             Noite
           </button>
+          <button
+            onClick={() => handlePeriodClick('sabado')}
+            className={`
+              flex-1 py-5 rounded-lg font-bold text-lg lg:text-xl transition-all duration-200 
+              active:scale-95 touch-manipulation
+              ${selectedPeriod === 'sabado'
+                ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/50'
+                : 'bg-slate-800 text-gray-300 hover:bg-slate-700 hover:text-white'
+              }
+            `}
+            style={{ minHeight: '64px' }}
+          >
+            Sábado
+          </button>
         </div>
       </div>
     </header>

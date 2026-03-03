@@ -24,7 +24,10 @@ const iconOptions = [
 //
 // Aluno encontra SUA turma no grid e vê as matérias dentro.
 
-export function adaptExcelData(excelData: ExcelData): {
+export function adaptExcelData(
+  excelData: ExcelData,
+  modality: Course['modality'] = 'tecnico'
+): {
   courses: Course[]
   teachers: Teacher[]
   rooms: Room[]
@@ -42,12 +45,17 @@ export function adaptExcelData(excelData: ExcelData): {
     // Chave única: turma-grupo-período (ex: "2MB-T1-manha", "2MB-T1-tarde")
     const key = `${pc.turma}-${pc.group}-${pc.period}`
     if (!turmaMap.has(key)) {
+      // Para cursos livres, usar apenas o nome do curso (sem grupo)
+      // Para cursos técnicos, usar turma + grupo
+      const displayName = modality === 'livre'
+        ? pc.turma
+        : `${pc.turma} ${pc.group}`
       turmaMap.set(key, {
         id: key,
-        name: `${pc.turma} ${pc.group}`,
+        name: displayName,
         color: colorPalette[ci % colorPalette.length],
         icon: iconOptions[ci % iconOptions.length],
-        modality: 'tecnico',
+        modality,
       })
       ci++
     }
@@ -108,7 +116,7 @@ export function adaptExcelData(excelData: ExcelData): {
   // ── CompleteClass (Class + referências embutidas) ──
   const completeClasses: CompleteClass[] = classes.map((c) => {
     const course = turmaMap.get(c.courseId) || {
-      id: c.courseId, name: c.courseId, color: '#666', icon: 'Code', modality: 'tecnico' as const,
+      id: c.courseId, name: c.courseId, color: '#666', icon: 'Code', modality,
     }
     const teacher = teachers.find((t) => t.id === c.teacherId) || { id: '', name: 'N/A' }
     const room = rooms.find((r) => r.id === c.roomId) || { id: '', name: 'N/A', type: 'classroom' as const }

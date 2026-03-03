@@ -61,6 +61,25 @@ export function getRelativeDayLabel(date: Date): string {
   return dayNames[date.getDay()]
 }
 
+// get Monday-Saturday of the current week
+// used for courses that include Saturday (e.g., Cursos Livres)
+export function getWeekDaysMondayToSaturday(): Date[] {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  // Find current week's Monday
+  const dayOfWeek = today.getDay() // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  const monday = addDays(today, -daysToSubtract)
+
+  // Return Mon(1) through Sat(6)
+  const days: Date[] = []
+  for (let i = 0; i < 6; i++) {
+    days.push(addDays(monday, i))
+  }
+  return days
+}
+
 // filter classes that are relevant based on current time
 // removes classes that have already finished today
 export function getRelevantClasses(classes: CompleteClass[]): CompleteClass[] {
@@ -132,7 +151,7 @@ export function getClassesForTimeSlotAndDay(
 }
 
 // period type for filtering classes
-export type Period = 'manha' | 'tarde' | 'noite' | null
+export type Period = 'manha' | 'tarde' | 'noite' | 'sabado' | null
 
 // filter classes by period based on start time
 // manhã: 00h até 12h
@@ -151,6 +170,8 @@ export function filterClassesByPeriod(classes: CompleteClass[], period: Period):
         return startHour >= 12 && startHour < 18
       case 'noite':
         return startHour >= 18 && startHour < 24
+      case 'sabado':
+        return classItem.dayOfWeek === 6
       default:
         return true
     }
