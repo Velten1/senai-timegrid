@@ -109,7 +109,7 @@ export function getClassesForTimeSlotAndDay(
 }
 
 // period type for filtering classes
-export type Period = 'manha' | 'tarde' | 'noite' | 'sabado' | null
+export type Period = 'manha' | 'tarde' | 'noite' | null
 
 // filter classes by period based on start time
 // manhã: 00h até 12h
@@ -128,8 +128,6 @@ export function filterClassesByPeriod(classes: CompleteClass[], period: Period):
         return startHour >= 12 && startHour < 18
       case 'noite':
         return startHour >= 18 && startHour < 24
-      case 'sabado':
-        return classItem.dayOfWeek === 6
       default:
         return true
     }
