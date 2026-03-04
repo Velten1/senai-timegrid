@@ -1,19 +1,6 @@
 import type { CompleteClass } from '../types'
 import { addDays } from './calendar'
 
-// get all classes that occur on a specific day
-// filters classes by matching dayOfWeek with the day's weekday
-export function getClassesForDay(classes: CompleteClass[], day: Date): CompleteClass[] {
-  const dayOfWeek = day.getDay() // 0 = sunday, 1 = monday, etc.
-  return classes.filter((classItem) => classItem.dayOfWeek === dayOfWeek)
-}
-
-// check if there are any classes on a specific day
-// returns true if at least one class exists for that day
-export function hasClassesOnDay(classes: CompleteClass[], day: Date): boolean {
-  return getClassesForDay(classes, day).length > 0
-}
-
 // get array with next 5 days starting from today (excluding Sundays)
 // returns array of date objects
 export function getNextFiveDays(): Date[] {
@@ -78,35 +65,6 @@ export function getWeekDaysMondayToSaturday(): Date[] {
     days.push(addDays(monday, i))
   }
   return days
-}
-
-// filter classes that are relevant based on current time
-// removes classes that have already finished today
-export function getRelevantClasses(classes: CompleteClass[]): CompleteClass[] {
-  const now = new Date()
-  const currentHour = now.getHours()
-  const currentMinute = now.getMinutes()
-  const currentTimeInMinutes = currentHour * 60 + currentMinute
-  const today = now.getDay() // 0 = sunday, 1 = monday, etc.
-
-  return classes.filter((classItem) => {
-    const [startHour, startMinute] = classItem.startTime.split(':').map(Number)
-    const startTimeInMinutes = startHour * 60 + startMinute
-
-    // if class is on a future day, always include it
-    if (classItem.dayOfWeek > today) {
-      return true
-    }
-
-    // if class is on a past day, exclude it
-    if (classItem.dayOfWeek < today) {
-      return false
-    }
-
-    // if class is today, only include if it hasn't started yet or is in progress
-    // include if start time is >= current time
-    return startTimeInMinutes >= currentTimeInMinutes
-  })
 }
 
 // get all unique time slots from classes

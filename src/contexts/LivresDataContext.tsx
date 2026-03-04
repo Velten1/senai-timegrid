@@ -1,3 +1,12 @@
+/**
+ * Context React que fornece dados de Cursos Livres (Sábado) para toda a aplicação.
+ * 
+ * Este contexto:
+ * - Usa o hook useExcelDataLivres para carregar dados do Excel
+ * - Adapta os dados parseados para o formato da aplicação
+ * - Fornece dados, loading, erros e função de refetch para componentes filhos
+ */
+
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import { useExcelDataLivres } from '../hooks/useExcelDataLivres'
 import { adaptExcelData } from '../utils/excelAdapter'
@@ -18,11 +27,15 @@ interface LivresDataContextType {
 
 const LivresDataContext = createContext<LivresDataContextType | undefined>(undefined)
 
+/**
+ * Provider: envolve a aplicação e fornece dados de Cursos Livres
+ */
 export function LivresDataProvider({ children }: { children: ReactNode }) {
   const { data, loading, error, lastUpdate, refetch } = useExcelDataLivres({
-    pollingInterval: 5 * 60 * 1000, // 5 minutos
+    pollingInterval: 30 * 1000, // 30 segundos
   })
 
+  // Adapta os dados do Excel para o formato da aplicação (modalidade: 'livre')
   const adapted = useMemo(() => {
     if (!data) {
       return {
@@ -34,7 +47,6 @@ export function LivresDataProvider({ children }: { children: ReactNode }) {
         announcements: [] as string[],
       }
     }
-    // Usar 'livre' como modality para Cursos Livres
     return adaptExcelData(data, 'livre')
   }, [data])
 
@@ -53,6 +65,9 @@ export function LivresDataProvider({ children }: { children: ReactNode }) {
   )
 }
 
+/**
+ * Hook para usar o contexto de dados de Cursos Livres
+ */
 export function useLivresDataContext(): LivresDataContextType {
   const ctx = useContext(LivresDataContext)
   if (!ctx) {

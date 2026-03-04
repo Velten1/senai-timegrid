@@ -13,10 +13,6 @@ interface CourseScheduleTableProps {
 // shows all classes for the week (not filtered by time)
 // automatically detects Saturday classes and expands to Mon-Sat
 export function CourseScheduleTable({ classes, courseColor }: CourseScheduleTableProps) {
-  // Use all classes (not filtered) to show complete weekly schedule
-  // This ensures all slots are visible, not just future ones
-  const relevantClasses = useMemo(() => classes, [classes])
-  
   // get all unique time slots from all classes
   const timeSlots = useMemo(() => getTimeSlots(classes), [classes])
   
@@ -86,7 +82,7 @@ export function CourseScheduleTable({ classes, courseColor }: CourseScheduleTabl
                 <div className="space-y-2">
                   {timeSlots.map((slot, slotIndex) => {
                     const dayClasses = getClassesForTimeSlotAndDay(
-                      relevantClasses,
+                      classes,
                       slot.startTime,
                       slot.endTime,
                       day

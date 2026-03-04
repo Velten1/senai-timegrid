@@ -1,16 +1,30 @@
+/**
+ * Serviço de parsing de planilhas Excel para Cursos Livres (Sábado).
+ * 
+ * Este arquivo:
+ * - Baixa a planilha do SharePoint
+ * - Parseia a aba "Sábado" que contém cursos livres
+ * - Extrai informações de cada curso (nome, professor, horário, sala)
+ * - Usa cache com hash para evitar re-parse quando a planilha não mudou
+ */
+
 import * as XLSX from 'xlsx'
 import type { ParsedClass, ExcelData } from './excelService'
+import { hashArrayBuffer } from '../utils/hashUtils'
+import { parseTimeString } from './excelParseHelpers'
 
-// ── URL da planilha de Cursos Livres ──────────────────────
-// Link de compartilhamento público:
-// https://fiapcom-my.sharepoint.com/:x:/g/personal/rm572913_fiap_com_br/IQAMbmQ5Kb4vQZarPc5S_kccAcYE8xeMC4R4Co5WOOhsyYA?e=fPoy9c
-//
-// Convertido para URL de download direto (mesmo formato das planilhas de Cursos Técnicos)
+// Cache em memória: guarda o hash e o resultado parseado
+let _cache: { hash: string; result: ExcelData } | null = null
+
+// URL da planilha de Cursos Livres no SharePoint
 const EXCEL_LIVRES_URL =
   'https://fiapcom-my.sharepoint.com/personal/rm572913_fiap_com_br/_layouts/15/download.aspx?share=IQAMbmQ5Kb4vQZarPc5S_kccAcYE8xeMC4R4Co5WOOhsyYA'
 
-// ── Helpers ───────────────────────────────────────────────
+// ── Funções auxiliares ───────────────────────────────────────────────
 
+/**
+ * Baixa a planilha Excel do SharePoint e retorna como ArrayBuffer
+ */
 async function downloadExcel(url: string): Promise<ArrayBuffer> {
   console.log('Baixando Excel do SharePoint (Cursos Livres)...')
   const response = await fetch(url)
@@ -25,19 +39,8 @@ async function downloadExcel(url: string): Promise<ArrayBuffer> {
 }
 
 /**
- * "8h45" → "08:45"  |  "10h15" → "10:15"  |  "8h" → "08:00"
- */
-function parseTimeString(raw: string): string {
-  const m = raw.trim().match(/(\d{1,2})h(\d{0,2})/)
-  if (!m) return '00:00'
-  const hour = m[1].padStart(2, '0')
-  const min = (m[2] || '00').padStart(2, '0')
-  return `${hour}:${min}`
-}
-
-/**
- * Verifica se a célula contém nome de sala/laboratório
- * Ex: "Sala S0", "Lab. 01 Robótica", "Lab. Elevadores Atlas Schindler"
+ * Verifica se uma string parece ser nome de sala/laboratório
+ * Exemplos: "Sala S0", "Lab. 01 Robótica", "Lab. Elevadores Atlas Schindler"
  */
 function isRoomName(value: string): boolean {
   if (!value) return false
@@ -45,49 +48,40 @@ function isRoomName(value: string): boolean {
   return /^(Sala\s|Lab\.)/i.test(trimmed)
 }
 
-// ── Informações extraídas de cada célula de curso ─────────
+// ── Estrutura de dados extraída de cada curso ─────────
 
 interface ParsedCourseInfo {
   courseName: string
   teacherName: string
-  startDate: string   // "DD/MM"
-  endDate: string     // "DD/MM"
-  startTime: string   // "HH:MM"
-  endTime: string     // "HH:MM"
+  startDate: string   // Formato "DD/MM"
+  endDate: string     // Formato "DD/MM"
+  startTime: string   // Formato "HH:MM"
+  endTime: string     // Formato "HH:MM"
 }
 
 /**
- * Parseia o texto de uma única entrada de curso.
- *
- * Formatos reconhecidos:
- *
- * LONGO (com datas e horários):
- *   "CCNA V7: Switchings... - prof. David - 17/01 a 21/03 - das 9h às 18h"
- *   "Facilities - 17/01 a 28/03 - prof. Sulivan - das 9h às 15h"
- *   "Python para Data Science - 07/02 a 25/04 - das 9h às 16h - prof. Rafael"
- *
- * CURTO (código + professor + sessões):
- *   "PROEMB+MIC32 - POLONI - 17SES"
- *   "IOT+GPSE - SIMPLÍCIO - 17SES"
- *   "GPSE - SIMPLÍCIO - 16SES (ATÉ 04/04)"
+ * Parseia o texto de uma única entrada de curso
+ * 
+ * Formatos suportados:
+ * - LONGO: "CCNA V7: Switchings... - prof. David - 17/01 a 21/03 - das 9h às 18h"
+ * - CURTO: "PROEMB+MIC32 - POLONI - 17SES"
  */
 function parseSingleCourse(text: string): ParsedCourseInfo | null {
   if (!text?.trim()) return null
 
   let remaining = text.trim()
 
-  // ── Extrair professor: "prof. Nome" / "profa. Nome" ──
+  // Extrair nome do professor (formato "prof. Nome" ou "profa. Nome")
   let teacherName = ''
   const teacherRegex = /\s*-?\s*prof[a]?\.\s*([^-–(]+?)(?:\s*[-–]|\s*$|\s*\()/i
   const teacherMatch = remaining.match(teacherRegex)
   if (teacherMatch) {
     teacherName = teacherMatch[1].trim()
-    // Remover notas entre parênteses do nome
     teacherName = teacherName.replace(/\s*\(.*?\)$/, '').trim()
     remaining = remaining.replace(teacherMatch[0], ' - ')
   }
 
-  // ── Extrair intervalo de datas: "DD/MM a DD/MM" ──
+  // Extrair intervalo de datas (formato "DD/MM a DD/MM")
   let startDate = '', endDate = ''
   const dateRegex = /\s*-?\s*(\d{1,2}\/\d{2})\s*a\s*(\d{1,2}\/\d{2})\s*-?\s*/
   const dateMatch = remaining.match(dateRegex)
@@ -97,8 +91,8 @@ function parseSingleCourse(text: string): ParsedCourseInfo | null {
     remaining = remaining.replace(dateMatch[0], ' - ')
   }
 
-  // ── Extrair intervalo de horário: "das Xh às Yh(MM)" ──
-  let startTime = '09:00', endTime = '18:00' // defaults para sábado
+  // Extrair intervalo de horário (formato "das Xh às Yh")
+  let startTime = '09:00', endTime = '18:00' // Valores padrão para sábado
   const timeRegex = /\s*-?\s*das\s*(\d{1,2}h\d{0,2})\s*[àa]s\s*(\d{1,2}h\d{0,2})\s*/i
   const timeMatch = remaining.match(timeRegex)
   if (timeMatch) {
@@ -107,20 +101,20 @@ function parseSingleCourse(text: string): ParsedCourseInfo | null {
     remaining = remaining.replace(timeMatch[0], ' - ')
   }
 
-  // ── Remover notas entre parênteses: "(aulas teóricas)" etc ──
+  // Remover notas entre parênteses
   remaining = remaining.replace(/\s*\([^)]*\)\s*/g, ' ')
 
-  // ── Limpar: dashes duplicados, leading/trailing ──
+  // Limpar traços duplicados
   remaining = remaining.replace(/(\s*-\s*){2,}/g, ' - ')
   remaining = remaining.replace(/^\s*-\s*|\s*-\s*$/g, '')
   remaining = remaining.trim()
 
-  // ── Determinar nome do curso ──
+  // Determinar nome do curso
   let courseName = remaining
   const isLongFormat = teacherMatch || dateMatch || timeMatch
 
   if (!isLongFormat) {
-    // Formato curto: "CURSO - PROFESSOR - NSSES (detalhes)"
+    // Formato curto: "CURSO - PROFESSOR - NSSES"
     const segments = text.split(/\s*-\s*/)
     courseName = segments[0]?.trim() || text.trim()
     if (segments.length >= 2) {
@@ -141,13 +135,13 @@ function parseSingleCourse(text: string): ParsedCourseInfo | null {
 }
 
 /**
- * Parseia o texto de uma célula que pode conter múltiplos cursos separados por " / "
- * Ex: "GPSE - SIMPLÍCIO - 16SES (ATÉ 04/04) / LIP - SIMPLÍCIO - 19SES (A PARTIR DE 11/04)"
+ * Parseia texto que pode conter múltiplos cursos separados por " / "
+ * Exemplo: "GPSE - SIMPLÍCIO - 16SES / LIP - SIMPLÍCIO - 19SES"
  */
 function parseCourseText(text: string): ParsedCourseInfo[] {
   if (!text?.trim()) return []
 
-  // Separar múltiplos cursos por " / " (com espaços em volta)
+  // Separar múltiplos cursos por " / "
   const entries = text.split(/\s+\/\s+/)
   const results: ParsedCourseInfo[] = []
 
@@ -161,15 +155,18 @@ function parseCourseText(text: string): ParsedCourseInfo[] {
 
 // ── Parser principal da aba "Sábado" ──────────────────────
 
+/**
+ * Encontra e parseia a aba "Sábado" do workbook
+ */
 function parseSabadoSheet(workbook: XLSX.WorkBook): ParsedClass[] {
-  // Procurar pela aba "Sábado" (variações de acentuação e caixa)
+  // Procurar pela aba "Sábado" (aceita variações de acentuação)
   const sabadoSheet = workbook.SheetNames.find(
     (name) => /s[áa]bado/i.test(name)
   )
 
   if (!sabadoSheet) {
     console.warn('Aba "Sábado" não encontrada. Abas disponíveis:', workbook.SheetNames)
-    // Tentar encontrar qualquer aba que possa ser sábado (case insensitive)
+    // Tentar encontrar qualquer aba que possa ser sábado
     const possibleSheets = workbook.SheetNames.filter((name) => 
       name.toLowerCase().includes('sab') || name.toLowerCase().includes('sáb')
     )
@@ -189,6 +186,13 @@ function parseSabadoSheet(workbook: XLSX.WorkBook): ParsedClass[] {
   return parseSheetData(ws, sabadoSheet)
 }
 
+/**
+ * Parseia os dados de uma aba específica
+ * Estrutura esperada:
+ * - Coluna A: Nome da sala/lab
+ * - Coluna B: Grupo 1 (células verdes)
+ * - Coluna H: Grupo 2 (células rosas)
+ */
 function parseSheetData(ws: XLSX.WorkSheet, sheetName: string): ParsedClass[] {
   const data: any[][] = XLSX.utils.sheet_to_json(ws, {
     header: 1,
@@ -200,14 +204,9 @@ function parseSheetData(ws: XLSX.WorkSheet, sheetName: string): ParsedClass[] {
 
   const allClasses: ParsedClass[] = []
 
-  // Detectar colunas: procurar onde estão os dados do grupo 1 e grupo 2
-  // Estrutura esperada:
-  //   Col A (0): Nome da sala/lab
-  //   Col B (1): Grupo 1 (células verdes, merged B-F)
-  //   Col G (6): Separador vazio
-  //   Col H (7): Grupo 2 (células rosas, merged H-M)
-  const GROUP1_COL = 1  // Coluna B
-  const GROUP2_COL = 7  // Coluna H
+  // Colunas fixas: Grupo 1 na coluna B (1), Grupo 2 na coluna H (7)
+  const GROUP1_COL = 1
+  const GROUP2_COL = 7
 
   let roomsFound = 0
   for (let ri = 0; ri < data.length; ri++) {
@@ -227,7 +226,7 @@ function parseSheetData(ws: XLSX.WorkSheet, sheetName: string): ParsedClass[] {
     // Ler texto do Grupo 2 (colunas H-M, merged → valor em H)
     const group2Text = String(row[GROUP2_COL] || '').trim()
 
-    // Parsear Grupo 1
+    // Parsear cursos do Grupo 1
     const group1Courses = parseCourseText(group1Text)
     if (group1Courses.length > 0) {
       console.log(`      Grupo 1: ${group1Courses.length} curso(s) encontrado(s)`)
@@ -246,7 +245,7 @@ function parseSheetData(ws: XLSX.WorkSheet, sheetName: string): ParsedClass[] {
       })
     }
 
-    // Parsear Grupo 2
+    // Parsear cursos do Grupo 2
     const group2Courses = parseCourseText(group2Text)
     if (group2Courses.length > 0) {
       console.log(`      Grupo 2: ${group2Courses.length} curso(s) encontrado(s)`)
@@ -269,7 +268,7 @@ function parseSheetData(ws: XLSX.WorkSheet, sheetName: string): ParsedClass[] {
   console.log(`   Total de salas processadas: ${roomsFound}`)
   console.log(`   Total de aulas parseadas (antes deduplicação): ${allClasses.length}`)
 
-  // ── Deduplicar: se o mesmo curso aparece em T1 e T2 com dados idênticos, manter apenas um ──
+  // Deduplicar: se o mesmo curso aparece em T1 e T2 com dados idênticos, manter apenas um
   const seen = new Set<string>()
   const deduplicated: ParsedClass[] = []
 
@@ -289,18 +288,32 @@ function parseSheetData(ws: XLSX.WorkSheet, sheetName: string): ParsedClass[] {
   return deduplicated
 }
 
-// ── Exportação: função principal ──────────────────────────
+// ── Função principal exportada ──────────────────────────
 
+/**
+ * Função principal: baixa e parseia a planilha de Cursos Livres
+ * Usa cache com hash para evitar re-parse quando a planilha não mudou
+ */
 export async function parseExcelFileLivres(): Promise<ExcelData> {
-  console.log('Iniciando parse de CURSOS LIVRES (Sábado)...\n')
-
+  // 1. Baixar planilha
   const arrayBuffer = await downloadExcel(EXCEL_LIVRES_URL)
-  const workbook = XLSX.read(arrayBuffer, { type: 'array' })
 
+  // 2. Verificar hash
+  const hash = await hashArrayBuffer(arrayBuffer)
+  if (_cache && _cache.hash === hash) {
+    console.log('[Livres] Planilha não mudou — usando cache')
+    return _cache.result
+  }
+
+  console.log('[Livres] Planilha mudou — re-parseando...\n')
+
+  // 3. Parsear planilha
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' })
   console.log('Abas disponíveis:', workbook.SheetNames)
 
   const classes = parseSabadoSheet(workbook)
 
+  // Estatísticas para log
   const turmas = [...new Set(classes.map((c) => c.turma))]
   const profs = [...new Set(classes.map((c) => c.teacherName).filter(Boolean))]
   const salas = [...new Set(classes.map((c) => c.labRoom).filter(Boolean))]
@@ -311,8 +324,10 @@ export async function parseExcelFileLivres(): Promise<ExcelData> {
   console.log(`   Professores (${profs.length}): ${profs.join(', ')}`)
   console.log(`   Salas (${salas.length}): ${salas.join(', ')}`)
 
-  return {
-    classes,
-    announcements: [],
-  }
+  const result: ExcelData = { classes, announcements: [] }
+
+  // 4. Atualizar cache
+  _cache = { hash, result }
+
+  return result
 }

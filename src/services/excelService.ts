@@ -1,24 +1,39 @@
-import * as XLSX from 'xlsx'
+/**
+ * Serviço de parsing de planilhas Excel para Cursos Técnicos (Manhã e Tarde).
+ * 
+ * Este arquivo:
+ * - Baixa as planilhas do SharePoint (Manhã e Tarde)
+ * - Detecta blocos de cabeçalho T1/T2 nas planilhas
+ * - Extrai informações de aulas (turma, horário, professor, sala, matéria)
+ * - Usa cache com hash para evitar re-parse quando a planilha não mudou
+ */
 
-// URLs das planilhas
+import * as XLSX from 'xlsx'
+import { hashArrayBuffer } from '../utils/hashUtils'
+import { parseTimeRange, isTurmaName } from './excelParseHelpers'
+
+// URLs das planilhas no SharePoint
 const EXCEL_MANHA_URL =
   'https://fiapcom-my.sharepoint.com/personal/rm572913_fiap_com_br/_layouts/15/download.aspx?share=IQAGYx9pSpz3QaP_8kCZ70VoATRNCdNttGnAZ0KTp2fYjuk'
 
 const EXCEL_TARDE_URL =
   'https://fiapcom-my.sharepoint.com/personal/rm572913_fiap_com_br/_layouts/15/download.aspx?share=IQBm3Xp-sKjfTYEiwiGLcx8KARrghayT1ba_suBXXAhfF9M'
 
+// Cache em memória: guarda o hash e o resultado parseado para evitar re-parse desnecessário
+let _cache: { hash: string; result: ExcelData } | null = null
+
 // ── Tipos ──────────────────────────────────────────────
 
 export interface ParsedClass {
   turma: string
-  dayOfWeek: number // 1=Segunda … 5=Sexta
-  startTime: string // "HH:MM"
-  endTime: string   // "HH:MM"
+  dayOfWeek: number // 1=Segunda, 2=Terça, 3=Quarta, 4=Quinta, 5=Sexta
+  startTime: string // Formato "HH:MM"
+  endTime: string   // Formato "HH:MM"
   group: 'T1' | 'T2'
-  courseCode: string
+  courseCode: string // Sigla da matéria (ex: "PMEC", "SEMB1")
   teacherName: string
   labRoom: string
-  period: 'manha' | 'tarde' | 'noite' | 'sabado' // Período do dia
+  period: 'manha' | 'tarde' | 'noite' | 'sabado'
 }
 
 export interface ExcelData {
@@ -26,8 +41,11 @@ export interface ExcelData {
   announcements: string[]
 }
 
-// ── Helpers ────────────────────────────────────────────
+// ── Funções auxiliares ────────────────────────────────────────────
 
+/**
+ * Baixa uma planilha Excel do SharePoint e retorna como ArrayBuffer
+ */
 async function downloadExcel(url: string, period: string): Promise<ArrayBuffer> {
   console.log(`Baixando Excel do SharePoint (${period})...`)
   const response = await fetch(url)
@@ -41,54 +59,20 @@ async function downloadExcel(url: string, period: string): Promise<ArrayBuffer> 
   return arrayBuffer
 }
 
-/**
- * "8h45" → "08:45"  |  "10h15" → "10:15"  |  "8h" → "08:00"
- */
-function parseTimeString(raw: string): string {
-  const m = raw.trim().match(/(\d{1,2})h(\d{0,2})/)
-  if (!m) return '00:00'
-  const hour = m[1].padStart(2, '0')
-  const min = (m[2] || '00').padStart(2, '0')
-  return `${hour}:${min}`
-}
-
-/**
- * "8h - 8h45" → { start: "08:00", end: "08:45" }
- */
-function parseTimeRange(horario: string): { start: string; end: string } {
-  const parts = horario.split(/\s*[-–]\s*/)
-  if (parts.length === 2) {
-    return { start: parseTimeString(parts[0]), end: parseTimeString(parts[1]) }
-  }
-  return { start: '00:00', end: '00:00' }
-}
-
-/**
- * Verifica se um valor parece nome de turma (ex: "2MB", "3MB", "4DEVM-A")
- */
-function isTurmaName(value: string): boolean {
-  if (!value || value.length > 20 || value.length < 2) return false
-  const low = value.toLowerCase()
-  const reserved = [
-    'turma', 'aula', 'horário', 'horario', 'intervalo',
-    't1', 't2', 'cai', 'cursos',
-  ]
-  if (reserved.some((r) => low === r)) return false
-  if (/segunda|ter[çc]a|quarta|quinta|sexta|semestre|manh[ãa]|tarde|noite/i.test(value)) return false
-  // Turma: começa com dígito ou letra, alfanumérico + hífens/pontos
-  return /^[\dA-Z][\dA-Za-z\-\.]*$/i.test(value)
-}
-
 // ── Detecção de blocos de cabeçalho (T1/T2) ───────────
 
 interface HeaderBlock {
-  subHeaderRow: number // índice da linha T1/T2
-  turmaCol: number
-  aulaCol: number
-  horarioCol: number
-  dayMapping: { day: number; t1Col: number; t2Col: number }[]
+  subHeaderRow: number // Linha onde está o cabeçalho T1/T2
+  turmaCol: number     // Coluna com nome da turma
+  aulaCol: number      // Coluna com número da aula
+  horarioCol: number   // Coluna com horário
+  dayMapping: { day: number; t1Col: number; t2Col: number }[] // Mapeia dias da semana para colunas T1/T2
 }
 
+/**
+ * Encontra todos os blocos de cabeçalho T1/T2 na planilha
+ * Cada bloco representa uma seção de horários de uma ou mais turmas
+ */
 function findHeaderBlocks(data: any[][]): HeaderBlock[] {
   const blocks: HeaderBlock[] = []
 
@@ -96,6 +80,7 @@ function findHeaderBlocks(data: any[][]): HeaderBlock[] {
     const row = data[ri]
     if (!row || row.length === 0) continue
 
+    // Procurar colunas com T1 e T2
     const t1Cols: number[] = []
     const t2Cols: number[] = []
 
@@ -105,9 +90,9 @@ function findHeaderBlocks(data: any[][]): HeaderBlock[] {
       if (v === 'T2') t2Cols.push(ci)
     }
 
-    // Precisamos de pelo menos 5 pares T1/T2 (Seg–Sex)
+    // Precisa ter pelo menos 5 pares T1/T2 (Segunda a Sexta)
     if (t1Cols.length >= 5 && t2Cols.length >= 5) {
-      // Detectar colunas de Turma / Aula / Horário na linha acima
+      // Detectar colunas de Turma, Aula e Horário na linha acima
       let turmaCol = 0
       let aulaCol = 1
       let horarioCol = 2
@@ -122,7 +107,7 @@ function findHeaderBlocks(data: any[][]): HeaderBlock[] {
         }
       }
 
-      // Mapear T1/T2 → dias da semana (1=Seg … 5=Sex)
+      // Mapear cada par T1/T2 para um dia da semana (1=Segunda, 2=Terça, etc)
       const dayMapping: HeaderBlock['dayMapping'] = []
       for (let i = 0; i < Math.min(t1Cols.length, t2Cols.length, 5); i++) {
         dayMapping.push({ day: i + 1, t1Col: t1Cols[i], t2Col: t2Cols[i] })
@@ -137,11 +122,13 @@ function findHeaderBlocks(data: any[][]): HeaderBlock[] {
 
 // ── Parser de uma planilha específica ───────────────────
 
-async function parseSingleExcelFile(url: string, periodLabel: string): Promise<ExcelData> {
-  const arrayBuffer = await downloadExcel(url, periodLabel)
+/**
+ * Parseia uma planilha Excel (Manhã ou Tarde) e extrai todas as aulas
+ */
+function parseSingleExcelData(arrayBuffer: ArrayBuffer, periodLabel: string): ExcelData {
   const workbook = XLSX.read(arrayBuffer, { type: 'array' })
 
-  // Converter "MANHÃ" → "manha", "TARDE" → "tarde"
+  // Determinar período: "MANHÃ" → "manha", "TARDE" → "tarde"
   const period: 'manha' | 'tarde' = periodLabel.toUpperCase().includes('MANH') ? 'manha' : 'tarde'
 
   console.log(`Abas disponíveis (${periodLabel}):`, workbook.SheetNames)
@@ -149,6 +136,7 @@ async function parseSingleExcelFile(url: string, periodLabel: string): Promise<E
   const allClasses: ParsedClass[] = []
   const announcements: string[] = []
 
+  // Processar cada aba da planilha
   for (const sheetName of workbook.SheetNames) {
     const ws = workbook.Sheets[sheetName]
     const data: any[][] = XLSX.utils.sheet_to_json(ws, {
@@ -159,6 +147,7 @@ async function parseSingleExcelFile(url: string, periodLabel: string): Promise<E
 
     console.log(`\nAba "${sheetName}" (${period}) — ${data.length} linhas`)
 
+    // Encontrar blocos de cabeçalho T1/T2
     const blocks = findHeaderBlocks(data)
     if (blocks.length === 0) {
       console.log('   Nenhum cabeçalho T1/T2 encontrado — pulando aba')
@@ -167,6 +156,7 @@ async function parseSingleExcelFile(url: string, periodLabel: string): Promise<E
 
     console.log(`   ${blocks.length} bloco(s) de turma`)
 
+    // Processar cada bloco de turma
     for (let bi = 0; bi < blocks.length; bi++) {
       const block = blocks[bi]
       const startRow = block.subHeaderRow + 1
@@ -176,32 +166,35 @@ async function parseSingleExcelFile(url: string, periodLabel: string): Promise<E
       let currentTurma: string | null = null
       let ri = startRow
 
+      // Processar linhas do bloco
       while (ri < endRow) {
         const row = data[ri]
         if (!row || row.length === 0) { ri++; continue }
 
-        // ── Detectar turma ──
+        // Detectar nome da turma
         const turmaCell = String(row[block.turmaCol] || '').trim()
         if (turmaCell && isTurmaName(turmaCell)) {
           currentTurma = turmaCell
           console.log(`   Turma: ${currentTurma}`)
         }
 
-        // ── Ler coluna "Aula" ──
+        // Ler coluna "Aula"
         const aulaCell = String(row[block.aulaCol] || '').trim()
 
-        // Pular INTERVALO
+        // Pular linhas de intervalo
         if (aulaCell.toLowerCase().includes('intervalo')) { ri++; continue }
 
-        // ── Processar aula (3 linhas: curso, professor, sala) ──
-        // Exigimos "Aula" + dígito para não confundir com o header de coluna "Aula"
+        // Processar aula: formato é 3 linhas (curso, professor, sala)
+        // Procura por "Aula" + dígito para não confundir com header
         if (/^aula\s*\d/i.test(aulaCell) && currentTurma) {
           const horarioStr = String(row[block.horarioCol] || '').trim()
           const time = parseTimeRange(horarioStr)
 
+          // Linhas seguintes: professor e sala
           const teacherRow = data[ri + 1] || []
           const roomRow = data[ri + 2] || []
 
+          // Processar cada dia da semana (T1 e T2)
           for (const { day, t1Col, t2Col } of block.dayMapping) {
             // T1
             const t1Code = String(row[t1Col] || '').trim()
@@ -240,7 +233,7 @@ async function parseSingleExcelFile(url: string, periodLabel: string): Promise<E
             }
           }
 
-          ri += 3 // pular as 3 linhas (curso + professor + sala)
+          ri += 3 // Pular as 3 linhas (curso + professor + sala)
           continue
         }
 
@@ -252,21 +245,45 @@ async function parseSingleExcelFile(url: string, periodLabel: string): Promise<E
   return { classes: allClasses, announcements }
 }
 
-// ── Parser principal (combina Manhã + Tarde) ─────────────
+// ── Função principal exportada ─────────────────────────────
 
+/**
+ * Função principal: baixa e parseia as planilhas de Manhã e Tarde
+ * Usa cache com hash para evitar re-parse quando as planilhas não mudaram
+ */
 export async function parseExcelFile(): Promise<ExcelData> {
-  console.log('Iniciando parse de MANHÃ + TARDE...\n')
-
-  // Baixar e parsear ambas as planilhas em paralelo
-  const [manhaData, tardeData] = await Promise.all([
-    parseSingleExcelFile(EXCEL_MANHA_URL, 'MANHÃ'),
-    parseSingleExcelFile(EXCEL_TARDE_URL, 'TARDE'),
+  // 1. Baixar ambas as planilhas em paralelo
+  const [manhaBuf, tardeBuf] = await Promise.all([
+    downloadExcel(EXCEL_MANHA_URL, 'MANHÃ'),
+    downloadExcel(EXCEL_TARDE_URL, 'TARDE'),
   ])
 
-  // Combinar os dados
+  // 2. Calcular hash de cada planilha
+  const [manhaHash, tardeHash] = await Promise.all([
+    hashArrayBuffer(manhaBuf),
+    hashArrayBuffer(tardeBuf),
+  ])
+  const combinedHash = manhaHash + tardeHash
+
+  // 3. Se nada mudou, retornar cache (evita re-parse completo)
+  if (_cache && _cache.hash === combinedHash) {
+    console.log('[Técnicos] Planilhas não mudaram — usando cache')
+    return _cache.result
+  }
+
+  console.log('[Técnicos] Planilha(s) mudou(aram) — re-parseando...\n')
+
+  // 4. Parsear ambas as planilhas
+  const [manhaData, tardeData] = [
+    parseSingleExcelData(manhaBuf, 'MANHÃ'),
+    parseSingleExcelData(tardeBuf, 'TARDE'),
+  ]
+
+  // 5. Combinar os dados de manhã e tarde
   const allClasses = [...manhaData.classes, ...tardeData.classes]
   const allAnnouncements = [...manhaData.announcements, ...tardeData.announcements]
 
+  // Estatísticas para log
   const turmas = [...new Set(allClasses.map((c) => c.turma))]
   const profs = [...new Set(allClasses.map((c) => c.teacherName).filter(Boolean))]
   const salas = [...new Set(allClasses.map((c) => c.labRoom).filter(Boolean))]
@@ -277,8 +294,10 @@ export async function parseExcelFile(): Promise<ExcelData> {
   console.log(`   Professores (${profs.length}): ${profs.join(', ')}`)
   console.log(`   Salas (${salas.length}): ${salas.join(', ')}`)
 
-  return {
-    classes: allClasses,
-    announcements: allAnnouncements,
-  }
+  const result: ExcelData = { classes: allClasses, announcements: allAnnouncements }
+
+  // 6. Atualizar cache com novo hash e resultado
+  _cache = { hash: combinedHash, result }
+
+  return result
 }

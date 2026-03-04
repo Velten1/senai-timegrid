@@ -32,7 +32,7 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
 
   if (!isOpen) return null
 
-  // group classes by day of week (numeric) for consistency with MiniWeeklyCalendar
+  // group classes by day of week (numeric)
   // uses dayOfWeek number (0-6) as key instead of day name
   const classesByDayOfWeek = classes.reduce((acc, classItem) => {
     const dayOfWeek = classItem.dayOfWeek

@@ -32,8 +32,13 @@ export function ClassDetailModal({ classItem, dayLabel, isOpen, onClose }: Class
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-white mb-1">
-                  {classItem.title}
+                  {classItem.fullName || classItem.title}
                 </h2>
+                {classItem.fullName && (
+                  <p className="text-gray-500 text-sm mb-1">
+                    {classItem.title}
+                  </p>
+                )}
                 <p className="text-gray-400 text-sm">
                   {dayLabel} - {getDayName(classItem.dayOfWeek)}
                 </p>

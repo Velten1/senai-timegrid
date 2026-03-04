@@ -1,3 +1,12 @@
+/**
+ * Context React que fornece dados de Cursos Técnicos (Manhã e Tarde) para toda a aplicação.
+ * 
+ * Este contexto:
+ * - Usa o hook useExcelData para carregar dados do Excel
+ * - Adapta os dados parseados para o formato da aplicação
+ * - Fornece dados, loading, erros e função de refetch para componentes filhos
+ */
+
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import { useExcelData } from '../hooks/useExcelData'
 import { adaptExcelData } from '../utils/excelAdapter'
@@ -18,11 +27,15 @@ interface ExcelDataContextType {
 
 const ExcelDataContext = createContext<ExcelDataContextType | undefined>(undefined)
 
+/**
+ * Provider: envolve a aplicação e fornece dados de Cursos Técnicos
+ */
 export function ExcelDataProvider({ children }: { children: ReactNode }) {
   const { data, loading, error, lastUpdate, refetch } = useExcelData({
-    pollingInterval: 5 * 60 * 1000, // 5 minutos
+    pollingInterval: 30 * 1000, // 30 segundos
   })
 
+  // Adapta os dados do Excel para o formato da aplicação
   const adapted = useMemo(() => {
     if (!data) {
       return {
@@ -52,6 +65,9 @@ export function ExcelDataProvider({ children }: { children: ReactNode }) {
   )
 }
 
+/**
+ * Hook para usar o contexto de dados de Cursos Técnicos
+ */
 export function useExcelDataContext(): ExcelDataContextType {
   const ctx = useContext(ExcelDataContext)
   if (!ctx) {

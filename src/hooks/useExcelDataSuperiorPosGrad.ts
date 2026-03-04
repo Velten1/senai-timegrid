@@ -1,5 +1,5 @@
 /**
- * Hook React para carregar dados de Cursos Livres (Sábado) do Excel.
+ * Hook React para carregar dados de Cursos Superiores e Pós-Graduação do Excel.
  * 
  * Funcionalidades:
  * - Carrega dados na montagem do componente
@@ -9,21 +9,25 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { parseExcelFileLivres } from '../services/excelServiceLivres'
-import type { ExcelData } from '../services/excelService'
+import {
+  parseExcelFileSuperiorPosGrad,
+  type SuperiorPosGradData,
+} from '../services/excelServiceSuperiorPosGrad'
 
-interface UseExcelDataLivresOptions {
+interface UseExcelDataSuperiorPosGradOptions {
   pollingInterval?: number // Intervalo de polling em ms (padrão: 30s)
   enabled?: boolean // Se false, não faz polling
 }
 
 /**
- * Hook principal: gerencia carregamento e polling de dados de Cursos Livres
+ * Hook principal: gerencia carregamento e polling de dados de Superior/PosGrad
  */
-export function useExcelDataLivres(options: UseExcelDataLivresOptions = {}) {
+export function useExcelDataSuperiorPosGrad(
+  options: UseExcelDataSuperiorPosGradOptions = {},
+) {
   const { pollingInterval = 30 * 1000, enabled = true } = options
 
-  const [data, setData] = useState<ExcelData | null>(null)
+  const [data, setData] = useState<SuperiorPosGradData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
@@ -41,7 +45,7 @@ export function useExcelDataLivres(options: UseExcelDataLivresOptions = {}) {
         setLoading(true)
       }
 
-      const result = await parseExcelFileLivres()
+      const result = await parseExcelFileSuperiorPosGrad()
 
       if (isMounted.current) {
         setData(result)
@@ -52,7 +56,7 @@ export function useExcelDataLivres(options: UseExcelDataLivresOptions = {}) {
     } catch (err) {
       if (isMounted.current) {
         setError(err instanceof Error ? err : new Error(String(err)))
-        console.error('Erro ao carregar dados do Excel (Cursos Livres):', err)
+        console.error('Erro ao carregar dados do Excel (Superior + Pos-Grad):', err)
       }
     } finally {
       if (isMounted.current) setLoading(false)
@@ -63,7 +67,9 @@ export function useExcelDataLivres(options: UseExcelDataLivresOptions = {}) {
   useEffect(() => {
     isMounted.current = true
     if (enabled) loadData()
-    return () => { isMounted.current = false }
+    return () => {
+      isMounted.current = false
+    }
   }, [loadData, enabled])
 
   // Polling automático: recarrega dados a cada X segundos

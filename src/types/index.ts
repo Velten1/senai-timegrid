@@ -30,6 +30,7 @@ export interface Class {
   roomId: string;
   title: string;
   description?: string;
+  fullName?: string; // Nome completo da disciplina (para cursos superiores e pós-graduação)
   dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = sunday, 1 = monday, etc.
   startTime: string; // format "HH:MM"
   endTime: string; // format "HH:MM"

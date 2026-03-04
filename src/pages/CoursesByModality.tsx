@@ -4,6 +4,7 @@ import { Header } from '../components/header/Header'
 import { CampusMap } from '../components/map/CampusMap'
 import { useExcelDataContext } from '../contexts/ExcelDataContext'
 import { useLivresDataContext } from '../contexts/LivresDataContext'
+import { useSuperiorPosGradDataContext } from '../contexts/SuperiorPosGradDataContext'
 import { courses as mockCourses, classes as mockClasses, getCompleteClasses } from '../data/mockData'
 import type { Period } from '../utils/courseSchedule'
 import type { Course } from '../types'
@@ -34,13 +35,27 @@ function CoursesByModality() {
     loading: livresLoading,
   } = useLivresDataContext()
 
+  // Dados de Cursos Superiores + Pos-Graduacao
+  const {
+    superiores,
+    posGraduacao,
+    loading: supPosGradLoading,
+  } = useSuperiorPosGradDataContext()
+
   // Flags para determinar qual fonte de dados usar
   const isExcelModality = modality === 'tecnico' && excelCourses.length > 0
   const isLivresModality = modality === 'livre' && livresCourses.length > 0
-  const isLoading = (modality === 'tecnico' && excelLoading) || (modality === 'livre' && livresLoading)
+  const isSuperioresModality = modality === 'superior' && superiores.courses.length > 0
+  const isPosGradModality = modality === 'pos-graduacao' && posGraduacao.courses.length > 0
 
-  // Cursos Livres não usam filtros de período
-  const showHeader = modality !== 'livre'
+  const isLoading =
+    (modality === 'tecnico' && excelLoading) ||
+    (modality === 'livre' && livresLoading) ||
+    (modality === 'superior' && supPosGradLoading) ||
+    (modality === 'pos-graduacao' && supPosGradLoading)
+
+  // Cursos Livres e Pos-Graduacao nao usam filtros de periodo
+  const showHeader = modality !== 'livre' && modality !== 'pos-graduacao' && modality !== 'superior'
 
   const filteredCourses: Course[] = useMemo(() => {
     if (!modality) return []
@@ -59,12 +74,21 @@ function CoursesByModality() {
 
     // ── Cursos Livres (dados do Excel sábado) ──
     if (isLivresModality) {
-      // Mostrar todos os cursos livres, sem filtragem
       return livresCourses
+    }
+
+    // ── Cursos Superiores ──
+    if (isSuperioresModality) {
+      return superiores.courses
+    }
+
+    // ── Pos-Graduacao ──
+    if (isPosGradModality) {
+      return posGraduacao.courses
     }
     
     return mockCourses.filter((c) => c.modality === modality)
-  }, [modality, isExcelModality, isLivresModality, excelCourses, livresCourses, selectedPeriod])
+  }, [modality, isExcelModality, isLivresModality, isSuperioresModality, isPosGradModality, excelCourses, livresCourses, superiores.courses, posGraduacao.courses, selectedPeriod])
 
   const completeClasses = useMemo(() => {
     // ── Cursos Técnicos ──
@@ -84,8 +108,18 @@ function CoursesByModality() {
       return livresCompleteClasses
     }
 
+    // ── Cursos Superiores ──
+    if (isSuperioresModality) {
+      return superiores.completeClasses
+    }
+
+    // ── Pos-Graduacao ──
+    if (isPosGradModality) {
+      return posGraduacao.completeClasses
+    }
+
     return getCompleteClasses(mockClasses)
-  }, [isExcelModality, isLivresModality, excelCompleteClasses, livresCompleteClasses, selectedPeriod])
+  }, [isExcelModality, isLivresModality, isSuperioresModality, isPosGradModality, excelCompleteClasses, livresCompleteClasses, superiores.completeClasses, posGraduacao.completeClasses, selectedPeriod])
 
   if (!modality || (!isLoading && filteredCourses.length === 0)) {
     return (

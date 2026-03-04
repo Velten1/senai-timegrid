@@ -1,8 +1,17 @@
+/**
+ * Adaptador que converte dados parseados do Excel para o formato usado pela aplicação.
+ * 
+ * Este arquivo:
+ * - Transforma ParsedClass em Class, Course, Teacher, Room
+ * - Cria CompleteClass (Class com referências completas)
+ * - Aplica cores e ícones às turmas
+ * - Usa o mapeamento de siglas para preencher nomes completos das disciplinas
+ */
+
 import type { Course, Teacher, Room, Class, CompleteClass, ClassStatus } from '../types'
 import type { ExcelData } from '../services/excelService'
 
-// ── Paletas de cores e ícones para turmas ──────────────
-
+// Paletas de cores e ícones para turmas (distribuídas automaticamente)
 const colorPalette = [
   '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899',
   '#06B6D4', '#84CC16', '#F97316', '#6366F1', '#14B8A6',
@@ -16,17 +25,21 @@ const iconOptions = [
   'Layers', 'Shield', 'Globe', 'Terminal',
 ]
 
-// ── Adaptador principal ────────────────────────────────
-//
-// HIERARQUIA:
-//   Grid (cards)  →  TURMAS   (2MB T1, 4DEVM-A T1, …)
-//   Slots (aulas) →  MATÉRIAS (PMEC, SEMB1, ITCOI, …)
-//
-// Aluno encontra SUA turma no grid e vê as matérias dentro.
-
+/**
+ * Função principal: adapta dados do Excel para o formato da aplicação
+ * 
+ * Hierarquia:
+ * - Courses (cards no grid) = Turmas (ex: "2MB T1", "4DEVM-A T1")
+ * - Classes (slots de aula) = Matérias (ex: "PMEC", "SEMB1", "ITCOI")
+ * 
+ * @param excelData Dados parseados do Excel
+ * @param modality Modalidade do curso (tecnico, livre, superior, pos-graduacao)
+ * @param courseNameMap Mapeamento opcional de sigla → nome completo (para superior/pos-grad)
+ */
 export function adaptExcelData(
   excelData: ExcelData,
-  modality: Course['modality'] = 'tecnico'
+  modality: Course['modality'] = 'tecnico',
+  courseNameMap?: Record<string, string>
 ): {
   courses: Course[]
   teachers: Teacher[]
@@ -37,7 +50,7 @@ export function adaptExcelData(
 } {
   const parsed = excelData.classes
 
-  // ── "Courses" = Turma + Grupo + Período (aparecem como cards no grid) ──
+  // Criar Courses (turmas): cada combinação turma+grupo+período vira um Course
   // Se a mesma turma tiver aulas de manhã E tarde, cria duas turmas separadas
   const turmaMap = new Map<string, Course>()
   let ci = 0
@@ -45,11 +58,16 @@ export function adaptExcelData(
     // Chave única: turma-grupo-período (ex: "2MB-T1-manha", "2MB-T1-tarde")
     const key = `${pc.turma}-${pc.group}-${pc.period}`
     if (!turmaMap.has(key)) {
-      // Para cursos livres, usar apenas o nome do curso (sem grupo)
-      // Para cursos técnicos, usar turma + grupo
-      const displayName = modality === 'livre'
-        ? pc.turma
-        : `${pc.turma} ${pc.group}`
+      // Nome de exibição varia por modalidade
+      let displayName: string
+      if (modality === 'livre') {
+        displayName = pc.turma // Cursos livres: apenas nome do curso
+      } else if (modality === 'pos-graduacao') {
+        const trimLabel = pc.group === 'T1' ? '1º Trim' : '2º Trim'
+        displayName = `${pc.turma} ${trimLabel}` // Pós-grad: turma + trimestre
+      } else {
+        displayName = `${pc.turma} ${pc.group}` // Demais: turma + grupo (T1/T2)
+      }
       turmaMap.set(key, {
         id: key,
         name: displayName,
@@ -62,7 +80,7 @@ export function adaptExcelData(
   }
   const courses = Array.from(turmaMap.values())
 
-  // ── Professores únicos (por nome) ──
+  // Criar Teachers (professores únicos, por nome)
   const teacherMap = new Map<string, Teacher>()
   let ti = 0
   for (const pc of parsed) {
@@ -76,11 +94,12 @@ export function adaptExcelData(
   }
   const teachers = Array.from(teacherMap.values())
 
-  // ── Salas únicas (por nome) ──
+  // Criar Rooms (salas únicas, por nome)
   const roomMap = new Map<string, Room>()
   let ri = 0
   for (const pc of parsed) {
     if (pc.labRoom && !roomMap.has(pc.labRoom)) {
+      // Determinar tipo: se contém "lab" é laboratório, senão é sala de aula
       const t = pc.labRoom.toLowerCase().includes('lab') ? 'laboratory' as const : 'classroom' as const
       roomMap.set(pc.labRoom, { id: `room-${ri}`, name: pc.labRoom, type: t })
       ri++
@@ -88,22 +107,25 @@ export function adaptExcelData(
   }
   const rooms = Array.from(roomMap.values())
 
-  // ── Aulas (matéria/sigla aparece DENTRO do slot) ──
+  // Criar Classes (aulas): cada ParsedClass vira uma Class
   const classes: Class[] = parsed.map((pc, idx) => {
     const teacher = teacherMap.get(pc.teacherName)
     const room = roomMap.get(pc.labRoom)
 
-    // Converter dayOfWeek do Excel (1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex)
-    // para formato JavaScript (0=Dom, 1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex, 6=Sab)
-    // Como o Excel só tem Seg-Sex (1-5), mapeamos diretamente: Excel 1 → JS 1, Excel 2 → JS 2, etc.
+    // Converter dayOfWeek: Excel usa 1-5 (Seg-Sex), JS usa 0-6 (Dom-Sab)
+    // Como Excel só tem Seg-Sex, mapeamos diretamente: Excel 1 → JS 1
     const jsDayOfWeek = pc.dayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6
+
+    // Buscar nome completo da disciplina no mapeamento (se disponível)
+    const fullName = courseNameMap?.[pc.courseCode.toUpperCase()]
 
     return {
       id: `excel-${idx}-${pc.period}`,
-      courseId: `${pc.turma}-${pc.group}-${pc.period}`,  // liga à turma+grupo+período
+      courseId: `${pc.turma}-${pc.group}-${pc.period}`, // Liga à turma+grupo+período
       teacherId: teacher?.id || '',
       roomId: room?.id || '',
-      title: pc.courseCode,                          // sigla da matéria no slot
+      title: pc.courseCode, // Sigla da matéria (ex: "LOGPRO")
+      fullName, // Nome completo (se disponível, ex: "Lógica de Programação...")
       description: `Prof. ${pc.teacherName || 'N/A'} | ${pc.labRoom || 'N/A'}`,
       dayOfWeek: jsDayOfWeek,
       startTime: pc.startTime,
@@ -113,7 +135,7 @@ export function adaptExcelData(
     }
   })
 
-  // ── CompleteClass (Class + referências embutidas) ──
+  // Criar CompleteClass: Class com referências completas (course, teacher, room)
   const completeClasses: CompleteClass[] = classes.map((c) => {
     const course = turmaMap.get(c.courseId) || {
       id: c.courseId, name: c.courseId, color: '#666', icon: 'Code', modality,
