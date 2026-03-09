@@ -22,19 +22,19 @@ const modalities = [
   {
     id: 'superior',
     name: 'Cursos Superiores',
-    description: 'Graduação em engenharia e tecnologia',
+    description: 'Graduação em tecnologia',
     icon: GraduationCap,
   },
   {
     id: 'livre',
-    name: 'Cursos Livres',
+    name: 'Cursos Livres/FIC',
     description: 'Capacitação rápida em diversas áreas do conhecimento',
     icon: BookOpen,
   },
   {
     id: 'pos-graduacao',
     name: 'Pós-Graduação',
-    description: 'Especialização e MBA para profissionais',
+    description: 'Especialização e MBA.',
     icon: Award,
   },
 ]
