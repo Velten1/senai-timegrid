@@ -9,96 +9,68 @@ interface CourseScheduleCardProps {
   classes: CompleteClass[]
 }
 
-// course schedule card component
-// displays course info (icon, name, description) and schedule table
-// represents one course grid with its schedule
+/**
+ * Card de grade horária de um curso.
+ * Estilo SENAI: fundo branco, borda vermelha lateral esquerda, botão vermelho.
+ */
 export function CourseScheduleCard({ course, classes }: CourseScheduleCardProps) {
-  // state for course modal (ver calendário button)
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false)
-
-  // handle ver calendário button click
-  const handleViewCalendar = () => {
-    setIsCourseModalOpen(true)
-  }
-
-  // close course modal
-  const handleCloseCourseModal = () => {
-    setIsCourseModalOpen(false)
-  }
 
   return (
     <>
-      <div
-        className="rounded-xl p-4 flex flex-col border transition-all duration-200 bg-slate-800/50"
-        style={{
-          borderColor: `${course.color}30`,
-        }}
-      >
-        {/* header section - icon, name, description */}
-      <div className="mb-3">
-          <div className="flex items-start gap-3">
-            {/* icon */}
-            <div
-              className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors duration-200"
-              style={{
-                backgroundColor: `${course.color}15`,
-              }}
-            >
-              <CourseIcon
-                iconName={course.icon}
-                size={24}
-                color={course.color}
-              />
-            </div>
+      <div className="relative bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+        {/* Borda vermelha lateral esquerda — assinatura visual SENAI */}
+        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#e30613]" />
 
-            {/* name and description */}
-            <div className="flex-1">
-              <h3 className="text-base font-bold text-white mb-0.5">
-                {course.name}
-              </h3>
-              {course.description && (
-                <p className="text-xs text-gray-400">
-                  {course.description}
-                </p>
-              )}
+        <div className="pl-5 pr-4 py-4">
+          {/* Header — ícone vermelho, nome, descrição */}
+          <div className="mb-3">
+            <div className="flex items-start gap-3">
+              {/* Ícone com fundo vermelho */}
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-[#e30613]">
+                <CourseIcon iconName={course.icon} size={24} color="#ffffff" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-gray-800 mb-0.5">
+                  {course.name}
+                </h3>
+                {course.description && (
+                  <p className="text-xs text-[#878787]">{course.description}</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* title: Aulas da semana */}
-        <div className="mb-3">
-          <h4 className="text-sm font-semibold text-white">Aulas da semana</h4>
-        </div>
+          {/* Título */}
+          <div className="mb-3 flex items-center gap-2">
+            <div className="w-1 h-4 bg-[#e30613] rounded-full" />
+            <h4 className="text-sm font-bold text-gray-700">Aulas da semana</h4>
+          </div>
 
-        {/* schedule table */}
-        <div className="flex-1 mb-4 overflow-hidden">
-          <CourseScheduleTable
-            classes={classes}
-            courseColor={course.color}
-          />
-        </div>
+          {/* Tabela de grade */}
+          <div className="flex-1 mb-4 overflow-hidden">
+            <CourseScheduleTable classes={classes} courseColor="#e30613" />
+          </div>
 
-        {/* ver calendário button */}
-        <div className="mt-auto">
-          <button
-            onClick={handleViewCalendar}
-            className="w-full px-6 py-4 rounded-lg text-base lg:text-lg font-bold text-white transition-all duration-200 hover:opacity-90 active:scale-95 touch-manipulation"
-            style={{
-              backgroundColor: course.color,
-              minHeight: '56px',
-            }}
-          >
-            Ver Calendário
-          </button>
+          {/* Botão ver calendário — vermelho sólido */}
+          <div className="mt-auto">
+            <button
+              onClick={() => setIsCourseModalOpen(true)}
+              className="w-full px-6 py-3.5 rounded-lg text-base font-bold text-white bg-[#e30613] hover:bg-[#9a1915] transition-all duration-200 active:scale-95 touch-manipulation shadow-sm"
+              style={{ minHeight: '48px' }}
+            >
+              Ver Calendário
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* course modal - ver calendário */}
+      {/* Modal do curso */}
       <CourseModal
         course={course}
         classes={classes}
         isOpen={isCourseModalOpen}
-        onClose={handleCloseCourseModal}
+        onClose={() => setIsCourseModalOpen(false)}
       />
     </>
   )

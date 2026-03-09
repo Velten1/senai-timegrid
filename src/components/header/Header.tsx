@@ -5,8 +5,10 @@ interface HeaderProps {
   onPeriodChange: (period: Period) => void
 }
 
-// header component that displays app title, subtitle, and period filter buttons
-// period buttons filter classes by time of day (manhã, tarde, noite)
+/**
+ * Header com identidade SENAI.
+ * Barra vermelha #e30613 com logo branco e filtros de período em vermelho.
+ */
 export function Header({ onPeriodChange }: HeaderProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>(null)
 
@@ -16,64 +18,44 @@ export function Header({ onPeriodChange }: HeaderProps) {
     onPeriodChange(newPeriod)
   }
 
-  return (
-    <header className="sticky top-0 z-30 bg-gradient-to-r from-slate-900 to-slate-950 border-b border-slate-800 backdrop-blur-sm">
-      <div className="p-4 lg:p-6">
-        {/* app title and subtitle */}
-        <div className="mb-4">
-          <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent">
-            SENAI MAP
-          </h1>
-          {/* subtitle */}
-          <p className="text-sm text-gray-400">
-            Localização de Cursos e Horários
-          </p>
-        </div>
+  const periods: { key: Period; label: string }[] = [
+    { key: 'manha', label: 'Manhã' },
+    { key: 'tarde', label: 'Tarde' },
+    { key: 'noite', label: 'Noite' },
+  ]
 
-        {/* period filter buttons */}
-        <div className="flex gap-4">
-          <button
-            onClick={() => handlePeriodClick('manha')}
-            className={`
-              flex-1 py-5 rounded-lg font-bold text-lg lg:text-xl transition-all duration-200 
-              active:scale-95 touch-manipulation
-              ${selectedPeriod === 'manha'
-                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/50'
-                : 'bg-slate-800 text-gray-300 hover:bg-slate-700 hover:text-white'
-              }
-            `}
-            style={{ minHeight: '64px' }}
-          >
-            Manhã
-          </button>
-          <button
-            onClick={() => handlePeriodClick('tarde')}
-            className={`
-              flex-1 py-5 rounded-lg font-bold text-lg lg:text-xl transition-all duration-200 
-              active:scale-95 touch-manipulation
-              ${selectedPeriod === 'tarde'
-                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/50'
-                : 'bg-slate-800 text-gray-300 hover:bg-slate-700 hover:text-white'
-              }
-            `}
-            style={{ minHeight: '64px' }}
-          >
-            Tarde
-          </button>
-          <button
-            onClick={() => handlePeriodClick('noite')}
-            className={`
-              flex-1 py-5 rounded-lg font-bold text-lg lg:text-xl transition-all duration-200 
-              active:scale-95 touch-manipulation
-              ${selectedPeriod === 'noite'
-                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/50'
-                : 'bg-slate-800 text-gray-300 hover:bg-slate-700 hover:text-white'
-              }
-            `}
-            style={{ minHeight: '64px' }}
-          >
-            Noite
-          </button>
+  return (
+    <header className="sticky top-0 z-30 shadow-md">
+      {/* Barra vermelha principal — estilo site SENAI */}
+      <div className="bg-[#e30613] px-4 lg:px-6 py-3 flex items-center gap-4">
+        <span className="text-xl lg:text-2xl font-black text-white tracking-tight">SENAI</span>
+        <span className="text-white/50">|</span>
+        <span className="text-white/90 text-sm font-medium">TimeGrid</span>
+      </div>
+
+      {/* Filtros de período — fundo branco com botões vermelhos */}
+      <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-4">
+        <p className="text-xs text-[#878787] mb-3 font-medium uppercase tracking-wider">
+          Filtrar por período
+        </p>
+        <div className="flex gap-3">
+          {periods.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => handlePeriodClick(key)}
+              className={`
+                flex-1 py-3.5 rounded-lg font-bold text-base lg:text-lg transition-all duration-200
+                active:scale-95 touch-manipulation
+                ${selectedPeriod === key
+                  ? 'bg-[#e30613] text-white shadow-lg shadow-[#e30613]/30'
+                  : 'bg-[#ededed] text-gray-600 hover:bg-[#e30613]/10 hover:text-[#e30613] border border-gray-200'
+                }
+              `}
+              style={{ minHeight: '52px' }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
     </header>

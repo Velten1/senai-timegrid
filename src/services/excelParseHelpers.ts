@@ -16,14 +16,23 @@
 
 /**
  * Converte string de horário do Excel para formato "HH:MM"
- * Exemplos: "8h45" → "08:45", "10h15" → "10:15", "8h" → "08:00"
+ * Aceita: "8h45" → "08:45", "10h15" → "10:15", "8h" → "08:00", "18:25" → "18:25"
  */
 export function parseTimeString(raw: string): string {
-  const m = raw.trim().match(/(\d{1,2})h(\d{0,2})/)
-  if (!m) return '00:00'
-  const hour = m[1].padStart(2, '0')
-  const min = (m[2] || '00').padStart(2, '0')
-  return `${hour}:${min}`
+  const trimmed = raw.trim()
+  // Formato "8h45", "18h25", "8h"
+  const hMatch = trimmed.match(/(\d{1,2})h(\d{0,2})/)
+  if (hMatch) {
+    const hour = hMatch[1].padStart(2, '0')
+    const min = (hMatch[2] || '00').padStart(2, '0')
+    return `${hour}:${min}`
+  }
+  // Formato "18:25", "8:45" (usado em algumas planilhas)
+  const colonMatch = trimmed.match(/^(\d{1,2}):(\d{2})$/)
+  if (colonMatch) {
+    return `${colonMatch[1].padStart(2, '0')}:${colonMatch[2]}`
+  }
+  return '00:00'
 }
 
 /**

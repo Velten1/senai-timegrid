@@ -59,13 +59,17 @@ function classifySheet(data: any[][]): SheetType {
 }
 
 /**
- * Detecta o período do dia (manhã, tarde, noite) analisando as primeiras linhas
+ * Detecta o período do dia analisando as primeiras linhas
+ * Reconhece: NOTURNO/NOITE, MATUTINO/MANHÃ, VESPERTINO/TARDE, DIURNO, SÁBADO
  */
 function detectPeriod(data: any[][]): ParsedClass['period'] {
   for (let i = 0; i < Math.min(5, data.length); i++) {
     const text = (data[i] || []).map((c: any) => String(c || '')).join(' ').toUpperCase()
-    if (text.includes('NOTURNO')) return 'noite'
+    if (text.includes('NOTURNO') || text.includes('NOITE')) return 'noite'
+    if (text.includes('MATUTINO') || text.includes('MANHÃ') || text.includes('MANHA')) return 'manha'
+    if (text.includes('VESPERTINO') || text.includes('TARDE')) return 'tarde'
     if (text.includes('DIURNO')) return 'manha'
+    if (text.includes('SÁBADO') || text.includes('SABADO')) return 'sabado'
   }
   return 'noite'
 }

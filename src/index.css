@@ -3,12 +3,13 @@
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Montserrat', system-ui, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: dark;
-  background-color: #0f172a;
+  color-scheme: light;
+  color: #1a1a1a;
+  background-color: #ededed;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -20,6 +21,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #ededed;
 }
 
 #root {
@@ -27,66 +29,42 @@ body {
   min-height: 100vh;
 }
 
-/* Scrollbar personalizada */
+/* Scrollbar — tema SENAI */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-
 ::-webkit-scrollbar-track {
-  background: rgb(15 23 42);
+  background: #ededed;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: rgb(51 65 85);
+  background: #bbb;
   border-radius: 4px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: rgb(71 85 105);
+  background: #999;
 }
 
-/* animations for course cards */
+/* Animações */
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
 .animate-fade-in-up {
   animation: fadeInUp 0.6s ease-out forwards;
 }
 
-/* animations for modal */
 @keyframes modalOverlayFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-
 @keyframes modalSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(50px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(50px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
-
 .animate-modal-overlay {
   animation: modalOverlayFadeIn 0.3s ease-out forwards;
 }
-
 .animate-modal-content {
   animation: modalSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

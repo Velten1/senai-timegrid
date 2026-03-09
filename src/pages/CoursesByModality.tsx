@@ -123,14 +123,14 @@ function CoursesByModality() {
 
   if (!modality || (!isLoading && filteredCourses.length === 0)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-[#ededed] flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-4xl text-white mb-4">
+          <h1 className="text-4xl font-bold text-gray-800 mb-4">
             {isLoading ? 'Carregando...' : 'Modalidade não encontrada'}
           </h1>
           <button
             onClick={() => navigate('/')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-6 py-3 bg-[#e30613] text-white rounded-lg hover:bg-[#9a1915] transition-colors font-semibold"
           >
             Voltar
           </button>
@@ -140,33 +140,45 @@ function CoursesByModality() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Header com filtros de período — só para modalidades que precisam de filtro */}
+    <div className="min-h-screen bg-[#ededed]">
+      {/* Header com filtros de período — só para modalidades que precisam */}
       {showHeader && <Header onPeriodChange={setSelectedPeriod} />}
 
-      {/* Botão de voltar */}
-      <div className="p-4 lg:p-6">
-        <button
-          onClick={() => navigate('/')}
-          className="px-8 py-4 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors font-semibold text-lg lg:text-xl touch-manipulation active:scale-95"
-          style={{ minHeight: '56px', minWidth: '140px' }}
-        >
-          ← Voltar
-        </button>
-      </div>
+      {/* Barra vermelha se não tem header */}
+      {!showHeader && (
+        <div className="bg-[#e30613] px-4 lg:px-6 py-3 flex items-center gap-4">
+          <span className="text-xl lg:text-2xl font-black text-white tracking-tight">SENAI</span>
+          <span className="text-white/50">|</span>
+          <span className="text-white/90 text-sm font-medium">TimeGrid</span>
+        </div>
+      )}
 
-      {/* Título da modalidade */}
-      <div className="px-4 lg:px-6 pt-6 pb-4 text-center">
-        <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent">
-          {modalityNames[modality]}
-        </h1>
+      {/* Título + botão voltar */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-5 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-black text-gray-800">
+              {modalityNames[modality]}
+            </h1>
+            <div className="mt-2 h-1 w-14 bg-[#e30613] rounded-full" />
+          </div>
+          <button
+            onClick={() => navigate('/')}
+            className="px-5 py-2.5 bg-[#ededed] text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-sm border border-gray-300 active:scale-95 touch-manipulation"
+          >
+            ← Voltar
+          </button>
+        </div>
       </div>
 
       {/* Main content */}
       <main className="p-4 lg:p-8">
         {isLoading && (
-          <div className="text-center text-gray-400 py-12">
-            Carregando dados do Excel...
+          <div className="text-center text-[#878787] py-12">
+            <div className="inline-flex items-center gap-3">
+              <div className="w-5 h-5 border-2 border-[#e30613] border-t-transparent rounded-full animate-spin" />
+              <span className="text-lg">Carregando dados...</span>
+            </div>
           </div>
         )}
 

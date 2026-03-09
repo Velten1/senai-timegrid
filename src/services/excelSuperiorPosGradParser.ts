@@ -149,23 +149,27 @@ function processAulaBlocks(
   const classes: ParsedClass[] = []
   aulaBlocks.sort((a, b) => a.aulaNum - b.aulaNum)
 
-  // Encontrar primeiro e último horário válido
+  // Encontrar primeiro e último horário válido e contar aulas com horário individual
   let firstTime: { start: string; end: string } | null = null
   let lastTime: { start: string; end: string } | null = null
+  let aulasWithTime = 0
 
   for (const ab of aulaBlocks) {
     const time = extractTime(ab.horarioStr)
     if (time && time.start !== '00:00') {
       if (!firstTime) firstTime = time
       lastTime = time
+      aulasWithTime++
     }
   }
 
-  // Se há múltiplas aulas e horários diferentes, distribuir em intervalos de 1h
+  // Distribuir horários APENAS quando há aulas sem horário individual
+  // Se todas as aulas já têm horário, usa o individual (evita sobrescrever com cálculo errado)
   const shouldDistribute =
     firstTime && lastTime &&
     firstTime.start !== lastTime.start &&
-    aulaBlocks.length > 1
+    aulaBlocks.length > 1 &&
+    aulasWithTime < aulaBlocks.length
 
   const distributedTimes = shouldDistribute
     ? calculateHourlyTimes(firstTime!.start, lastTime!.end, aulaBlocks.length)
@@ -174,8 +178,9 @@ function processAulaBlocks(
   // Processar cada aula do bloco
   for (let i = 0; i < aulaBlocks.length; i++) {
     const ab = aulaBlocks[i]
-    const time = distributedTimes?.[i]
-      ?? extractTime(ab.horarioStr)
+    // Prioridade: horário individual → distribuído → primeiro horário → fallback
+    const time = extractTime(ab.horarioStr)
+      ?? distributedTimes?.[i]
       ?? firstTime
       ?? { start: '00:00', end: '00:00' }
 
@@ -210,7 +215,7 @@ function extractTime(horarioStr: string): { start: string; end: string } | null 
 }
 
 // Palavras reservadas que não devem ser tratadas como siglas de disciplina
-const RESERVED_RE = /^(disciplina|professor|local|info|turma)$/i
+const RESERVED_RE = /^(disciplina|professor|local|info|turma|intervalo|hor[áa]rio|aula|classe|data)$/i
 
 /**
  * Adiciona uma aula à lista se a célula contém uma sigla válida
@@ -279,13 +284,21 @@ export function parseSheetData(
 
       // Detectar nome da turma
       const classeCell = String(row[block.classeCol] || '').trim()
-      if (classeCell && isTurmaName(classeCell)) {
+      if (classeCell && isTurmaName(classeCell) && classeCell !== currentTurma) {
+        // Se mudou de turma, processar aulas acumuladas da turma anterior
+        if (currentTurma && aulaBlocks.length > 0) {
+          allClasses.push(...processAulaBlocks(aulaBlocks, block, currentTurma, period))
+          aulaBlocks.length = 0
+        }
         currentTurma = classeCell
       }
 
       const infoCell = String(row[block.infoCol] || '').trim().toLowerCase()
 
-      // Pular linhas de intervalo
+      // Pular linhas de intervalo (coluna Info ou Aula)
+      // Nota: NÃO checar colunas de dia aqui — uma linha de Disciplina pode ter
+      // "INTERVALO" em 1 dia e disciplinas válidas nos outros. O RESERVED_RE
+      // já cuida de pular células individuais com "INTERVALO" no pushIfValid.
       if (/intervalo/i.test(infoCell) || /intervalo/i.test(String(row[block.aulaCol] || ''))) {
         ri++; continue
       }
@@ -300,18 +313,22 @@ export function parseSheetData(
         const profTurma = String(professorRow[block.classeCol] || '').trim()
         if (profTurma && isTurmaName(profTurma)) currentTurma = profTurma
 
-        // Extrair número da aula da linha anterior
-        const aulaRow = data[ri - 1] || []
-        const aulaMatch = String(aulaRow[block.aulaCol] || '').match(/(\d+)[ª°º]/i)
+        // Extrair número da aula: tentar linha anterior, depois mesma linha
+        const aulaRowAbove = data[ri - 1] || []
+        let aulaMatch = String(aulaRowAbove[block.aulaCol] || '').match(/(\d+)[ª°º]/i)
+        if (!aulaMatch) {
+          // Formato onde aula e disciplina estão na mesma linha
+          aulaMatch = String(disciplinaRow[block.aulaCol] || '').match(/(\d+)[ª°º]/i)
+        }
         const aulaNum = aulaMatch ? parseInt(aulaMatch[1], 10) : 0
 
-        // Extrair horário (tentar várias posições)
-        let horarioStr = String(aulaRow[block.horarioCol] || '').trim()
+        // Extrair horário: tentar linha anterior, depois mesma linha, depois coluna aula
+        let horarioStr = String(aulaRowAbove[block.horarioCol] || '').trim()
         if (!horarioStr || /^(Info|HORÁRIO|HORARIO|AULA)$/i.test(horarioStr)) {
           horarioStr = String(disciplinaRow[block.horarioCol] || '').trim()
         }
         if (!horarioStr || /^(Info|AULA)$/i.test(horarioStr)) {
-          horarioStr = String(aulaRow[block.aulaCol] || '').trim()
+          horarioStr = String(aulaRowAbove[block.aulaCol] || '').trim()
         }
 
         aulaBlocks.push({ aulaNum, disciplinaRow, professorRow, localRow, horarioStr })
