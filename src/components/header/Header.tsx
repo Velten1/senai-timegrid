@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Period } from '../../utils/courseSchedule'
+import senaiWhiteLogo from '../../images/senaiWHITE.png'
 
 interface HeaderProps {
   onPeriodChange: (period: Period) => void
@@ -26,9 +27,9 @@ export function Header({ onPeriodChange }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-30 shadow-md">
-      {/* Barra vermelha principal — estilo site SENAI */}
+      {/* Barra vermelha principal com logo SENAI branca */}
       <div className="bg-[#e30613] px-4 lg:px-6 py-3 flex items-center gap-4">
-        <span className="text-xl lg:text-2xl font-black text-white tracking-tight">SENAI</span>
+        <img src={senaiWhiteLogo} alt="SENAI" className="h-7 lg:h-8" />
         <span className="text-white/50">|</span>
         <span className="text-white/90 text-sm font-medium">TimeGrid</span>
       </div>

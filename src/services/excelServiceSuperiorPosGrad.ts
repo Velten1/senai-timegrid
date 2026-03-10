@@ -13,6 +13,7 @@ import * as XLSX from 'xlsx'
 import type { ParsedClass, ExcelData } from './excelService'
 import { parseSheetData } from './excelSuperiorPosGradParser'
 import { hashArrayBuffer } from '../utils/hashUtils'
+import { detectPeriod } from './excelParseHelpers'
 
 // Cache em memória: guarda o hash e o resultado parseado
 let _cache: { hash: string; result: SuperiorPosGradData } | null = null
@@ -58,21 +59,7 @@ function classifySheet(data: any[][]): SheetType {
   return 'unknown'
 }
 
-/**
- * Detecta o período do dia analisando as primeiras linhas
- * Reconhece: NOTURNO/NOITE, MATUTINO/MANHÃ, VESPERTINO/TARDE, DIURNO, SÁBADO
- */
-function detectPeriod(data: any[][]): ParsedClass['period'] {
-  for (let i = 0; i < Math.min(5, data.length); i++) {
-    const text = (data[i] || []).map((c: any) => String(c || '')).join(' ').toUpperCase()
-    if (text.includes('NOTURNO') || text.includes('NOITE')) return 'noite'
-    if (text.includes('MATUTINO') || text.includes('MANHÃ') || text.includes('MANHA')) return 'manha'
-    if (text.includes('VESPERTINO') || text.includes('TARDE')) return 'tarde'
-    if (text.includes('DIURNO')) return 'manha'
-    if (text.includes('SÁBADO') || text.includes('SABADO')) return 'sabado'
-  }
-  return 'noite'
-}
+// detectPeriod importado de excelParseHelpers
 
 /**
  * Extrai a legenda de siglas das últimas 100 linhas da planilha

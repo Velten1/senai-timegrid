@@ -30,11 +30,12 @@ export interface HeaderBlock {
 }
 
 interface AulaBlock {
-  aulaNum: number      // Número da aula
-  disciplinaRow: any[] // Linha com siglas das disciplinas
-  professorRow: any[]  // Linha com nomes dos professores
-  localRow: any[]      // Linha com salas/laboratórios
-  horarioStr: string   // String com horário
+  aulaNum: number       // Número da aula
+  disciplinaRow: any[]  // Linha com siglas das disciplinas
+  professorRow: any[]   // Linha com nomes dos professores
+  localRow: any[]       // Linha com salas/laboratórios
+  horarioStr: string    // String com horário
+  afterLocalRow: any[]  // Linha logo após Local (usada para INTERVALO deslocado)
 }
 
 // ── Detecção de blocos de cabeçalho ───────────────────────
@@ -65,19 +66,19 @@ export function findHeaderBlocks(data: any[][]): HeaderBlock[] {
       if (/2[ºo°]\s*Trimestre/i.test(v)) { trim2Cols.push(ci); hasTrimestre = true }
     }
 
-    // Determinar tipo de cabeçalho
+    // Determinar tipo de cabeçalho — aceita T1 sozinho (sem T2 obrigatório)
     let type: 'T1T2' | 'trimestre' | null = null
     let col1List: number[] = []
     let col2List: number[] = []
 
-    if (t1Cols.length >= 1 && t2Cols.length >= 1 && !hasTrimestre) {
+    if (t1Cols.length >= 1 && !hasTrimestre) {
       type = 'T1T2'
       col1List = t1Cols
-      col2List = t2Cols
-    } else if (hasTrimestre && trim1Cols.length > 0 && trim2Cols.length > 0) {
+      col2List = t2Cols // pode ser vazio se não houver T2
+    } else if (hasTrimestre && trim1Cols.length > 0) {
       type = 'trimestre'
       col1List = trim1Cols
-      col2List = trim2Cols
+      col2List = trim2Cols // pode ser vazio
     }
 
     if (!type) continue
@@ -97,29 +98,48 @@ export function findHeaderBlocks(data: any[][]): HeaderBlock[] {
       if (horarioCol !== 2 || (classeCol !== 0 && aulaCol !== 1)) break
     }
 
-    // Detectar dias da semana nas linhas acima
+    // Detectar dias da semana nas linhas acima (deduplicar por dia)
     const dayPositions: { day: number; startCol: number }[] = []
     for (let offset = 1; offset <= 3 && ri - offset >= 0; offset++) {
       const dayRow = data[ri - offset] || []
       for (let c = 0; c < dayRow.length; c++) {
         const dayNum = getDayNumberFromText(String(dayRow[c] || '').trim())
-        if (dayNum !== null && !dayPositions.some(dp => dp.day === dayNum && dp.startCol === c)) {
+        if (dayNum !== null && !dayPositions.some(dp => dp.day === dayNum)) {
           dayPositions.push({ day: dayNum, startCol: c })
         }
       }
     }
     dayPositions.sort((a, b) => a.startCol - b.startCol)
 
-    // Mapear cada par de colunas (T1/T2) para um dia da semana
+    // Mapear colunas para cada dia da semana
+    // Para cada dia, verifica se existem T1/T2 labels dentro do range.
+    // Se não existem labels, deduz colunas pela posição e span até o próximo dia.
     const dayMapping: HeaderBlock['dayMapping'] = []
-    for (let i = 0; i < Math.min(col1List.length, col2List.length); i++) {
-      const colPos = col1List[i]
-      let matchedDay = dayPositions.length > 0 ? dayPositions[0].day : (i + 1)
-      for (const dp of dayPositions) {
-        if (dp.startCol <= colPos) matchedDay = dp.day
-        else break
+    for (let di = 0; di < dayPositions.length; di++) {
+      const dp = dayPositions[di]
+      const nextCol = dayPositions[di + 1]?.startCol ?? (row.length)
+
+      // Procurar T1 e T2 dentro do range deste dia [dp.startCol, nextCol)
+      const t1InDay = col1List.find(c => c >= dp.startCol && c < nextCol)
+      const t2InDay = col2List.find(c => c >= dp.startCol && c < nextCol)
+
+      if (t1InDay !== undefined && t2InDay !== undefined) {
+        // Dia com T1 + T2 labels
+        dayMapping.push({ day: dp.day, col1: t1InDay, col2: t2InDay })
+      } else if (t1InDay !== undefined) {
+        // Dia com T1 apenas (sem T2)
+        dayMapping.push({ day: dp.day, col1: t1InDay, col2: -1 })
+      } else {
+        // Dia sem labels T1/T2 — deduzir pela posição
+        const span = nextCol - dp.startCol
+        if (span >= 2) {
+          // 2+ colunas sem label → tratar como col1 e col2
+          dayMapping.push({ day: dp.day, col1: dp.startCol, col2: dp.startCol + 1 })
+        } else {
+          // 1 coluna só
+          dayMapping.push({ day: dp.day, col1: dp.startCol, col2: -1 })
+        }
       }
-      dayMapping.push({ day: matchedDay, col1: col1List[i], col2: col2List[i] })
     }
 
     blocks.push({ subHeaderRow: ri, classeCol, aulaCol, horarioCol, infoCol, type, dayMapping })
@@ -184,10 +204,12 @@ function processAulaBlocks(
       ?? firstTime
       ?? { start: '00:00', end: '00:00' }
 
-    // Criar aulas para cada dia da semana (T1 e T2)
+    // Criar aulas para cada dia da semana (T1 e, se existir, T2)
     for (const { day, col1, col2 } of headerBlock.dayMapping) {
-      pushIfValid(classes, ab.disciplinaRow, ab.professorRow, ab.localRow, col1, 'T1', currentTurma, day, time, period)
-      pushIfValid(classes, ab.disciplinaRow, ab.professorRow, ab.localRow, col2, 'T2', currentTurma, day, time, period)
+      pushIfValid(classes, ab.disciplinaRow, ab.professorRow, ab.localRow, col1, 'T1', currentTurma, day, time, period, ab.afterLocalRow)
+      if (col2 >= 0) {
+        pushIfValid(classes, ab.disciplinaRow, ab.professorRow, ab.localRow, col2, 'T2', currentTurma, day, time, period, ab.afterLocalRow)
+      }
     }
   }
 
@@ -218,7 +240,12 @@ function extractTime(horarioStr: string): { start: string; end: string } | null 
 const RESERVED_RE = /^(disciplina|professor|local|info|turma|intervalo|hor[áa]rio|aula|classe|data)$/i
 
 /**
- * Adiciona uma aula à lista se a célula contém uma sigla válida
+ * Adiciona uma aula à lista se a célula contém uma sigla válida.
+ *
+ * Trata o padrão "INTERVALO deslocado": quando a célula de disciplina
+ * contém INTERVALO (ou está vazia — ex: célula mesclada do Excel) mas as
+ * linhas abaixo contêm dados de uma aula real. Isso ocorre quando um dia
+ * (ex: sexta) tem intervalo mais cedo que os demais dias.
  */
 function pushIfValid(
   classes: ParsedClass[],
@@ -227,10 +254,37 @@ function pushIfValid(
   turma: string, day: number,
   time: { start: string; end: string },
   period: ParsedClass['period'],
+  afterLocalRow?: any[],
 ) {
   const code = String(discRow[col] || '').trim()
-  // Pular células vazias ou palavras reservadas
-  if (!code || RESERVED_RE.test(code)) return
+
+  // Tratar INTERVALO deslocado OU célula vazia (merge do Excel):
+  // Se disciplina = "INTERVALO" ou vazia, verificar se as linhas abaixo
+  // contêm dados deslocados (disciplina em profRow, professor em locRow)
+  if (/^intervalo$/i.test(code) || !code) {
+    const shiftedDisc = String(profRow[col] || '').trim()
+    const shiftedProf = String(locRow[col] || '').trim()
+    // Só criar aula se AMBOS (disc e prof deslocados) existirem e não forem
+    // palavras reservadas — evita falsos positivos em células legitimamente vazias
+    if (shiftedDisc && !RESERVED_RE.test(shiftedDisc) && shiftedProf && !RESERVED_RE.test(shiftedProf)) {
+      const shiftedRoom = afterLocalRow ? String(afterLocalRow[col] || '').trim() : ''
+      classes.push({
+        turma,
+        dayOfWeek: day,
+        startTime: time.start,
+        endTime: time.end,
+        group,
+        courseCode: shiftedDisc,
+        teacherName: shiftedProf,
+        labRoom: /^intervalo$/i.test(shiftedRoom) ? '' : shiftedRoom,
+        period,
+      })
+    }
+    return
+  }
+
+  // Pular palavras reservadas
+  if (RESERVED_RE.test(code)) return
   classes.push({
     turma,
     dayOfWeek: day,
@@ -331,7 +385,10 @@ export function parseSheetData(
           horarioStr = String(aulaRowAbove[block.aulaCol] || '').trim()
         }
 
-        aulaBlocks.push({ aulaNum, disciplinaRow, professorRow, localRow, horarioStr })
+        aulaBlocks.push({
+          aulaNum, disciplinaRow, professorRow, localRow, horarioStr,
+          afterLocalRow: data[ri + 3] || [],
+        })
         ri += 3
         continue
       }
@@ -343,10 +400,13 @@ export function parseSheetData(
         const teacherRow = data[ri + 1] || []
         const roomRow = data[ri + 2] || []
 
-        // Criar aulas para cada dia (T1 e T2)
+        // Criar aulas para cada dia (T1 e, se existir, T2)
+        const afterRoomRow = data[ri + 3] || []
         for (const { day, col1, col2 } of block.dayMapping) {
-          pushIfValid(allClasses, row, teacherRow, roomRow, col1, 'T1', currentTurma, day, time, period)
-          pushIfValid(allClasses, row, teacherRow, roomRow, col2, 'T2', currentTurma, day, time, period)
+          pushIfValid(allClasses, row, teacherRow, roomRow, col1, 'T1', currentTurma, day, time, period, afterRoomRow)
+          if (col2 >= 0) {
+            pushIfValid(allClasses, row, teacherRow, roomRow, col2, 'T2', currentTurma, day, time, period, afterRoomRow)
+          }
         }
         ri += 3
         continue

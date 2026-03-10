@@ -112,6 +112,28 @@ export function getDayNumberFromText(text: string): number | null {
   return null
 }
 
+// ── Detecção de período do dia ────────────────────────────
+
+/**
+ * Detecta o período do dia analisando as primeiras linhas da planilha
+ * Reconhece: NOTURNO/NOITE, MATUTINO/MANHÃ, VESPERTINO/TARDE, DIURNO, SÁBADO
+ * @param defaultPeriod Período padrão caso nenhum seja detectado (default: 'noite')
+ */
+export function detectPeriod(
+  data: any[][],
+  defaultPeriod: 'manha' | 'tarde' | 'noite' | 'sabado' = 'noite',
+): 'manha' | 'tarde' | 'noite' | 'sabado' {
+  for (let i = 0; i < Math.min(5, data.length); i++) {
+    const text = (data[i] || []).map((c: any) => String(c || '')).join(' ').toUpperCase()
+    if (text.includes('NOTURNO') || text.includes('NOITE')) return 'noite'
+    if (text.includes('MATUTINO') || text.includes('MANHÃ') || text.includes('MANHA')) return 'manha'
+    if (text.includes('VESPERTINO') || text.includes('TARDE')) return 'tarde'
+    if (text.includes('DIURNO')) return 'manha'
+    if (text.includes('SÁBADO') || text.includes('SABADO')) return 'sabado'
+  }
+  return defaultPeriod
+}
+
 // ── Cálculo de horários intermediários ────────────────────
 
 /**

@@ -1,5 +1,6 @@
 import type { CompleteClass } from '../../types'
 import { getDayName } from '../../utils/formatting'
+import senaiWhiteLogo from '../../images/senaiWHITE.png'
 
 interface ClassDetailModalProps {
   classItem: CompleteClass
@@ -29,8 +30,10 @@ export function ClassDetailModal({ classItem, dayLabel, isOpen, onClose }: Class
           className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto pointer-events-auto animate-modal-content"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header VERMELHO — igual site SENAI */}
+          {/* Header VERMELHO com logo branca */}
           <div className="bg-[#e30613] rounded-t-xl px-6 py-5">
+            {/* Logo SENAI branca pequena */}
+            <img src={senaiWhiteLogo} alt="SENAI" className="h-5 mb-3 opacity-80" />
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <h2 className="text-xl lg:text-2xl font-black text-white mb-1">

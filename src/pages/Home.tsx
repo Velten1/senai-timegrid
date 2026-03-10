@@ -11,6 +11,8 @@ import {
   ChevronRight,
   Bell,
 } from 'lucide-react'
+import senaiWhiteLogo from '../images/senaiWHITE.png'
+import senaiRedLogo from '../images/senaiRED.png'
 
 const modalities = [
   {
@@ -34,7 +36,7 @@ const modalities = [
   {
     id: 'pos-graduacao',
     name: 'Pós-Graduação',
-    description: 'Especialização e MBA.',
+    description: 'Especialização e MBA',
     icon: Award,
   },
 ]
@@ -74,12 +76,10 @@ function Home() {
       {/* ══ TOP BAR VERMELHO — igual site SENAI ══ */}
       <div className="bg-[#e30613] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          {/* Logo SENAI — caixa vermelha com texto branco (como site oficial) */}
+          {/* Logo SENAI branca sobre fundo vermelho (manual de marca) */}
           <div className="flex items-center gap-4">
-            <span className="text-2xl lg:text-3xl font-black tracking-tight text-white">
-              SENAI
-            </span>
-            <span className="hidden sm:inline text-white/80 text-sm font-light">|</span>
+            <img src={senaiWhiteLogo} alt="SENAI" className="h-8 lg:h-10" />
+            <span className="hidden sm:inline text-white/50 text-sm font-light">|</span>
             <span className="hidden sm:inline text-white/90 text-sm font-medium">
               TimeGrid
             </span>
@@ -99,10 +99,13 @@ function Home() {
       {/* ══ HERO ══ */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 text-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight mb-3">
-            <span className="text-[#e30613]">SENAI</span>
-            <span className="text-gray-800 ml-3 font-light">TimeGrid</span>
-          </h1>
+          {/* Logo SENAI vermelha sobre fundo branco (manual de marca) */}
+          <div className="flex justify-center mb-4">
+            <img src={senaiRedLogo} alt="SENAI" className="h-14 sm:h-16 lg:h-20" />
+          </div>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-light tracking-tight text-gray-800 mb-3">
+            TimeGrid
+          </h2>
           <p className="text-base lg:text-lg text-[#878787] max-w-lg mx-auto leading-relaxed">
             Sistema de Grade de Horários e Localização de Cursos
           </p>
@@ -203,12 +206,11 @@ function Home() {
 
       {/* ══ FOOTER VERMELHO — igual site SENAI ══ */}
       <footer className="bg-[#e30613] mt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
-          <p className="text-white font-bold text-sm">
-            SENAI TimeGrid
-          </p>
-          <p className="text-white/80 text-xs mt-1">
-            Sistema de Grade de Horários e Localização de Cursos
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col items-center gap-3">
+          {/* Logo SENAI branca no footer vermelho */}
+          <img src={senaiWhiteLogo} alt="SENAI" className="h-7" />
+          <p className="text-white/80 text-xs">
+            TimeGrid — Sistema de Grade de Horários e Localização de Cursos
           </p>
         </div>
       </footer>

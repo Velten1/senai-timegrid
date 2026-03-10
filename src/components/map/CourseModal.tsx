@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { Course, CompleteClass } from '../../types'
 import { CourseIcon } from './CourseIcon'
+import senaiWhiteLogo from '../../images/senaiWHITE.png'
 
 interface CourseModalProps {
   course: Course
@@ -63,11 +64,13 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
           className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto pointer-events-auto animate-modal-content"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* ══ HEADER VERMELHO — estilo site SENAI ══ */}
+          {/* ══ HEADER VERMELHO com logo SENAI branca ══ */}
           <div className="bg-[#e30613] rounded-t-xl px-6 lg:px-8 py-6">
+            {/* Logo SENAI branca pequena */}
+            <img src={senaiWhiteLogo} alt="SENAI" className="h-5 mb-4 opacity-80" />
             <div className="flex items-start justify-between gap-6">
               <div className="flex items-start gap-5 flex-1">
-                {/* Ícone — fundo branco com ícone vermelho */}
+                {/* Ícone do curso */}
                 <div className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 bg-white/20">
                   <CourseIcon iconName={course.icon} size={28} color="#ffffff" />
                 </div>
