@@ -62,7 +62,7 @@ export function TotemIdleReturn({ idleMs = DEFAULT_IDLE_MS }: TotemIdleReturnPro
       }
       clear()
     }
-  }, [navigate, idleMs, location.pathname])
+  }, [navigate, idleMs])
 
   return null
 }

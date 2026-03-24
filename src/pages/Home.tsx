@@ -10,9 +10,34 @@ import {
   Calendar,
   ChevronRight,
   Bell,
+  CalendarDays,
+  Loader2,
 } from 'lucide-react'
 import senaiWhiteLogo from '../images/senaiWHITE.png'
 import senaiRedLogo from '../images/senaiRED.png'
+import { useAvisosDataContext } from '../contexts/AvisosDataContext'
+import type { Aviso } from '../services/excelServiceAvisos'
+
+/** Período do aviso para exibição (planilha: Data Início / Data Fim) */
+function formatAvisoPeriodo(
+  dataInicio: Aviso['dataInicio'],
+  dataFim: Aviso['dataFim'],
+): string | null {
+  if (!dataInicio && !dataFim) return null
+  const short = (d: Date) =>
+    d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  if (dataInicio && dataFim) {
+    const same =
+      dataInicio.getFullYear() === dataFim.getFullYear() &&
+      dataInicio.getMonth() === dataFim.getMonth() &&
+      dataInicio.getDate() === dataFim.getDate()
+    if (same) return short(dataInicio)
+    return `${short(dataInicio)} — ${short(dataFim)}`
+  }
+  if (dataInicio) return `De ${short(dataInicio)}`
+  if (dataFim) return `Até ${short(dataFim)}`
+  return null
+}
 
 const modalities = [
   {
@@ -41,15 +66,10 @@ const modalities = [
   },
 ]
 
-const announcements = [
-  'Segunda Feira será feriado e não teremos aulas.',
-  'Professor João está doente e não poderá lecionar a aula de hoje.',
-  'Aula de AWS foi remarcada para sexta-feira.',
-]
-
 function Home() {
   const navigate = useNavigate()
   const [currentTime, setCurrentTime] = useState(new Date())
+  const { avisos, loading: avisosLoading } = useAvisosDataContext()
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60_000)
@@ -177,7 +197,6 @@ function Home() {
 
         {/* ── Anúncios ── */}
         <section className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          {/* Barra vermelha no topo */}
           <div className="h-1.5 bg-[#e30613]" />
 
           <div className="flex items-center gap-3 px-6 lg:px-8 pt-5 pb-3">
@@ -191,15 +210,38 @@ function Home() {
           </div>
 
           <div className="px-6 lg:px-8 pb-6 space-y-2.5">
-            {announcements.map((text, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-3 p-3.5 rounded-lg bg-[#ededed] hover:bg-gray-200/70 transition-colors"
-              >
-                <Bell size={16} className="text-[#e30613] mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-gray-700 leading-relaxed">{text}</p>
+            {avisosLoading ? (
+              <div className="flex items-center justify-center gap-2 py-6 text-[#878787]">
+                <Loader2 size={18} className="animate-spin" />
+                <span className="text-sm">Carregando avisos...</span>
               </div>
-            ))}
+            ) : avisos.length === 0 ? (
+              <div className="text-center py-6 text-[#878787] text-sm">
+                Nenhum aviso no momento.
+              </div>
+            ) : (
+              avisos.map((aviso, index) => {
+                const Icon = aviso.tipo === 'evento' ? CalendarDays : Bell
+                const periodo = formatAvisoPeriodo(aviso.dataInicio, aviso.dataFim)
+                return (
+                  <div
+                    key={index}
+                    className="flex items-start gap-3 p-3.5 rounded-lg bg-[#ededed] hover:bg-gray-200/70 transition-colors"
+                  >
+                    <Icon size={16} className="text-[#e30613] mt-0.5 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-gray-700 leading-relaxed">{aviso.texto}</p>
+                      {periodo && (
+                        <p className="mt-1.5 flex items-center gap-1.5 text-xs text-[#878787]">
+                          <Calendar size={12} className="flex-shrink-0 text-[#e30613]/80" />
+                          <span>{periodo}</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </div>
         </section>
       </div>
