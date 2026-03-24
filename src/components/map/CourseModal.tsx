@@ -201,9 +201,9 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
                   ))}
                 </div>
               ) : (
-                <div className="p-8 rounded-lg bg-[#ededed] border border-gray-200 text-center">
-                  <p className="text-[#878787] text-lg">
-                    Nenhuma aula marcada para este dia
+                <div className="p-8 rounded-lg bg-white border border-red-300 text-center">
+                  <p className="text-[#e30613] text-lg font-medium">
+                    Nenhuma aula programada para este dia
                   </p>
                 </div>
               )}

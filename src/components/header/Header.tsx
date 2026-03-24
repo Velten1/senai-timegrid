@@ -31,7 +31,7 @@ export function Header({ onPeriodChange }: HeaderProps) {
       <div className="bg-[#e30613] px-4 lg:px-6 py-3 flex items-center gap-4">
         <img src={senaiWhiteLogo} alt="SENAI" className="h-7 lg:h-8" />
         <span className="text-white/50">|</span>
-        <span className="text-white/90 text-sm font-medium">TimeGrid</span>
+        <span className="text-white/90 text-sm font-medium">Grade de Horários</span>
       </div>
 
       {/* Filtros de período — fundo branco com botões vermelhos */}

@@ -91,7 +91,7 @@ export function CourseScheduleTable({ classes }: CourseScheduleTableProps) {
                           flex items-center justify-center
                           ${hasClasses
                             ? 'bg-[#e30613] border-[#9a1915] cursor-pointer hover:bg-[#9a1915] active:scale-[0.97] touch-manipulation shadow-sm'
-                            : 'bg-[#f5f5f5] border-gray-200 cursor-default'
+                            : 'bg-white border-red-300 cursor-default'
                           }
                         `}
                       >
@@ -116,9 +116,9 @@ export function CourseScheduleTable({ classes }: CourseScheduleTableProps) {
                             </div>
                           </div>
                         ) : (
-                          <div className="p-1 w-full h-full flex items-center justify-center">
-                            <p className="text-[9px] text-gray-400 text-center leading-tight">
-                              —
+                          <div className="p-1.5 w-full h-full flex items-center justify-center">
+                            <p className="text-[8px] font-medium text-[#e30613] text-center leading-tight px-1 line-clamp-3">
+                              Nenhuma aula programada para este dia
                             </p>
                           </div>
                         )}
