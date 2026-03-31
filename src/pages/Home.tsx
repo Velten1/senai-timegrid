@@ -42,7 +42,7 @@ function formatAvisoPeriodo(
 const modalities = [
   {
     id: 'tecnico',
-    name: 'Cursos Técnicos',
+    name: 'CAI e Cursos Técnicos',
     description: 'Formação técnica profissional com prática em laboratórios',
     icon: Wrench,
   },

@@ -1,11 +1,12 @@
 /**
- * Serviço de parsing de planilhas Excel para Cursos Livres.
- * 
- * Este arquivo:
- * - Baixa a planilha do SharePoint
- * - Tenta parsear usando o parser estruturado (mesmo formato de Superior/PosGrad)
- * - Se não encontrar blocos estruturados, faz fallback para o parser legado (salas na coluna A)
- * - Usa cache com hash para evitar re-parse quando a planilha não mudou
+ * Serviço de parsing de planilhas Excel para Cursos Livres/FIC.
+ *
+ * Estratégia de parse (em ordem de prioridade):
+ * 1. Parser dedicado Livres (CLASSE/AULA/HORÁRIO/Info + uma coluna por dia, sem T1/T2)
+ * 2. Parser estruturado Superior/PosGrad (formato com T1/T2 — se alguma aba usar)
+ * 3. Parser legado (salas na coluna A — planilhas antigas)
+ *
+ * Usa cache com hash para evitar re-parse quando a planilha não mudou
  */
 
 import * as XLSX from 'xlsx'
@@ -13,13 +14,14 @@ import type { ParsedClass, ExcelData } from './excelService'
 import { hashArrayBuffer } from '../utils/hashUtils'
 import { parseTimeString, detectPeriod } from './excelParseHelpers'
 import { parseSheetData as parseSheetStructured } from './excelSuperiorPosGradParser'
+import { parseLivresSheetData } from './excelLivresParser'
 
 // Cache em memória: guarda o hash e o resultado parseado
 let _cache: { hash: string; result: ExcelData } | null = null
 
 // URL da planilha de Cursos Livres no SharePoint
 const EXCEL_LIVRES_URL =
-  'https://fiapcom-my.sharepoint.com/personal/rm572913_fiap_com_br/_layouts/15/download.aspx?share=IQAMbmQ5Kb4vQZarPc5S_kccAcYE8xeMC4R4Co5WOOhsyYA'
+  'https://fiapcom-my.sharepoint.com/personal/rm572913_fiap_com_br/_layouts/15/download.aspx?share=IQBCz7RtFpBCQ4RpVaiQ2f8yAXD25lIeqAX7daqPHpwGDFA'
 
 // ── Funções auxiliares ───────────────────────────────────────────────
 
@@ -28,7 +30,10 @@ const EXCEL_LIVRES_URL =
  */
 async function downloadExcel(url: string): Promise<ArrayBuffer> {
   console.log('Baixando Excel do SharePoint (Cursos Livres)...')
-  const response = await fetch(url)
+  const response = await fetch(url, {
+    cache: 'no-store',
+    headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+  })
 
   if (!response.ok) {
     throw new Error(`Erro ao baixar Excel (Cursos Livres): ${response.status} ${response.statusText}`)
@@ -40,14 +45,43 @@ async function downloadExcel(url: string): Promise<ArrayBuffer> {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-// PARSER NOVO (formato estruturado: CLASSE/AULA/HORÁRIO/Info + dias)
-// Reutiliza o parser de Superior/PosGrad
+// PARSER DEDICADO LIVRES (sem T1/T2 — uma coluna por dia, 2 linhas por aula)
 // ══════════════════════════════════════════════════════════════════════
 
 /**
- * Tenta parsear todas as abas usando o parser estruturado
- * Retorna as aulas encontradas (array vazio se nenhuma aba é estruturada)
+ * Tenta parsear todas as abas com o parser dedicado para Cursos Livres.
+ * Formato: CLASSE | AULA | HORÁRIO | Info + uma coluna por dia (sem T1/T2).
  */
+function parseWithLivresFormat(workbook: XLSX.WorkBook): ParsedClass[] {
+  const allClasses: ParsedClass[] = []
+
+  for (const name of workbook.SheetNames) {
+    const ws = workbook.Sheets[name]
+    if (!ws) continue
+
+    const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false })
+    if (data.length < 3) continue
+
+    const period = detectPeriod(data, 'sabado')
+    console.log(`\n--- [Livres/Dedicado] "${name}" (${period}) ---`)
+
+    const classes = parseLivresSheetData(data, name, period)
+    if (classes.length === 0) {
+      console.log('   Sem aulas (formato Livres)')
+      continue
+    }
+
+    console.log(`   ${classes.length} aula(s) encontradas`)
+    allClasses.push(...classes)
+  }
+
+  return allClasses
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// FALLBACK: PARSER ESTRUTURADO SUPERIOR/POSGRAD (formato com T1/T2)
+// ══════════════════════════════════════════════════════════════════════
+
 function parseWithStructuredFormat(workbook: XLSX.WorkBook): ParsedClass[] {
   const allClasses: ParsedClass[] = []
 
@@ -58,9 +92,8 @@ function parseWithStructuredFormat(workbook: XLSX.WorkBook): ParsedClass[] {
     const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false })
     if (data.length < 3) continue
 
-    // Detectar período (default 'sabado' para Cursos Livres)
     const period = detectPeriod(data, 'sabado')
-    console.log(`\n--- [Livres] "${name}" (${period}) ---`)
+    console.log(`\n--- [Livres/SupPosGrad] "${name}" (${period}) ---`)
 
     const classes = parseSheetStructured(data, name, period)
     if (classes.length === 0) {
@@ -283,11 +316,17 @@ export async function parseExcelFileLivres(): Promise<ExcelData> {
   const workbook = XLSX.read(arrayBuffer, { type: 'array' })
   console.log('Abas disponíveis:', workbook.SheetNames)
 
-  // Tentar formato estruturado primeiro
-  let classes = parseWithStructuredFormat(workbook)
+  // 1) Parser dedicado Livres (sem T1/T2)
+  let classes = parseWithLivresFormat(workbook)
 
+  // 2) Fallback: formato estruturado Superior/PosGrad (com T1/T2)
   if (classes.length === 0) {
-    // Fallback: formato legado (salas na coluna A)
+    console.log('\n[Livres] Formato dedicado não encontrou aulas — tentando formato estruturado (T1/T2)...')
+    classes = parseWithStructuredFormat(workbook)
+  }
+
+  // 3) Fallback: formato legado (salas na coluna A)
+  if (classes.length === 0) {
     console.log('\n[Livres] Formato estruturado não encontrou aulas — tentando formato legado...')
     classes = parseLegacyFormat(workbook)
   }
