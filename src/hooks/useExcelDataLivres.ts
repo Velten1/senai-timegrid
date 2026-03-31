@@ -10,7 +10,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { parseExcelFileLivres } from '../services/excelServiceLivres'
-import type { ExcelData } from '../services/excelService'
+import type { ExcelData } from '../services/excelServiceTecnicos'
 
 interface UseExcelDataLivresOptions {
   pollingInterval?: number // Intervalo de polling em ms (padrão: 30s)

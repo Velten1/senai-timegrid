@@ -8,7 +8,7 @@
  * - Distribui horários quando há múltiplas aulas no mesmo intervalo
  */
 
-import type { ParsedClass } from './excelService'
+import type { ParsedClass } from './excelServiceTecnicos'
 import {
   parseTimeString,
   parseTimeRange,

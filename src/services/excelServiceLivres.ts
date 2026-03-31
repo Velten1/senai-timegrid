@@ -10,7 +10,7 @@
  */
 
 import * as XLSX from 'xlsx'
-import type { ParsedClass, ExcelData } from './excelService'
+import type { ParsedClass, ExcelData } from './excelServiceTecnicos'
 import { hashArrayBuffer } from '../utils/hashUtils'
 import { parseTimeString, detectPeriod } from './excelParseHelpers'
 import { parseSheetData as parseSheetStructured } from './excelSuperiorPosGradParser'

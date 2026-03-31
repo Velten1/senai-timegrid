@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { parseExcelFile, type ExcelData } from '../services/excelService'
+import { parseExcelFile, type ExcelData } from '../services/excelServiceTecnicos'
 
 interface UseExcelDataOptions {
   pollingInterval?: number // Intervalo de polling em ms (padrão: 30s)

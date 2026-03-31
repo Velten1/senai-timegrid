@@ -9,7 +9,7 @@
  */
 
 import type { Course, Teacher, Room, Class, CompleteClass, ClassStatus } from '../types'
-import type { ExcelData } from '../services/excelService'
+import type { ExcelData } from '../services/excelServiceTecnicos'
 
 // Paletas de cores e ícones para turmas (distribuídas automaticamente)
 const colorPalette = [

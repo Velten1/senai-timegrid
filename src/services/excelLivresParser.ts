@@ -12,7 +12,7 @@
  * Dias sem aula ficam em branco.
  */
 
-import type { ParsedClass } from './excelService'
+import type { ParsedClass } from './excelServiceTecnicos'
 import {
   parseTimeRange,
   getDayNumberFromText,
