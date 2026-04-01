@@ -1,19 +1,20 @@
 import { useState } from 'react'
 import type { Course, CompleteClass } from '../../types'
 import { CourseIcon } from '../map/CourseIcon'
-import { CourseScheduleTable } from './CourseScheduleTable'
+import { CourseScheduleTable, type CourseScheduleLayout } from './CourseScheduleTable'
 import { CourseModal } from '../map/CourseModal'
 
 interface CourseScheduleCardProps {
   course: Course
   classes: CompleteClass[]
+  scheduleLayout?: CourseScheduleLayout
 }
 
 /**
  * Card de grade horária de um curso.
  * Estilo SENAI: fundo branco, borda vermelha lateral esquerda, botão vermelho.
  */
-export function CourseScheduleCard({ course, classes }: CourseScheduleCardProps) {
+export function CourseScheduleCard({ course, classes, scheduleLayout = 'classic' }: CourseScheduleCardProps) {
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false)
 
   return (
@@ -49,7 +50,7 @@ export function CourseScheduleCard({ course, classes }: CourseScheduleCardProps)
 
           {/* Tabela de grade */}
           <div className="flex-1 mb-4 overflow-hidden">
-            <CourseScheduleTable classes={classes} courseColor="#e30613" />
+            <CourseScheduleTable classes={classes} courseColor="#e30613" layout={scheduleLayout} />
           </div>
 
           {/* Botão ver calendário — vermelho sólido */}

@@ -7,11 +7,13 @@ interface CampusMapProps {
   courses: Course[]
   period: Period
   completeClasses: CompleteClass[]
+  /** Somente cursos técnicos: grade compacta (3 dias × 5 horários). */
+  isTechnicalModality?: boolean
 }
 
 // course grid component - displays courses with mini weekly calendars
 // each course is shown as a card with its schedule for the next 5 days
-export function CampusMap({ courses, period, completeClasses }: CampusMapProps) {
+export function CampusMap({ courses, period, completeClasses, isTechnicalModality = false }: CampusMapProps) {
   return (
     <div className="w-full">
       {/* course cards grid - responsive layout */}
@@ -32,6 +34,7 @@ export function CampusMap({ courses, period, completeClasses }: CampusMapProps) 
               key={course.id}
               course={course}
               classes={courseClasses}
+              scheduleLayout={isTechnicalModality ? 'technical' : 'classic'}
             />
           )
         })}

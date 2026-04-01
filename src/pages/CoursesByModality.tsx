@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Header } from '../components/header/Header'
 import { CampusMap } from '../components/map/CampusMap'
@@ -54,6 +54,13 @@ function CoursesByModality() {
     (modality === 'livre' && livresLoading) ||
     (modality === 'superior' && supPosGradLoading) ||
     (modality === 'pos-graduacao' && supPosGradLoading)
+
+  // Cursos técnicos só têm manhã/tarde — remover filtro "noite"
+  useEffect(() => {
+    if (modality === 'tecnico' && selectedPeriod === 'noite') {
+      setSelectedPeriod(null)
+    }
+  }, [modality, selectedPeriod])
 
   // Cursos Livres e Pos-Graduacao nao usam filtros de periodo
   const showHeader = modality !== 'livre' && modality !== 'pos-graduacao' && modality !== 'superior'
@@ -143,7 +150,13 @@ function CoursesByModality() {
   return (
     <div className="min-h-screen bg-[#ededed]">
       {/* Header com filtros de período — só para modalidades que precisam */}
-      {showHeader && <Header onPeriodChange={setSelectedPeriod} />}
+      {showHeader && (
+        <Header
+          key={modality === 'tecnico' ? 'header-tecnico' : 'header-full'}
+          onPeriodChange={setSelectedPeriod}
+          periodKeys={modality === 'tecnico' ? ['manha', 'tarde'] : undefined}
+        />
+      )}
 
       {/* Barra vermelha com logo branca se não tem header */}
       {!showHeader && (
@@ -188,6 +201,7 @@ function CoursesByModality() {
             courses={filteredCourses}
             period={selectedPeriod}
             completeClasses={completeClasses}
+            isTechnicalModality={modality === 'tecnico'}
           />
         )}
       </main>

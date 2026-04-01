@@ -4,13 +4,17 @@ import senaiWhiteLogo from '../../images/senaiWHITE.png'
 
 interface HeaderProps {
   onPeriodChange: (period: Period) => void
+  /** Períodos exibidos (padrão: manhã, tarde e noite). Cursos técnicos: só manhã e tarde. */
+  periodKeys?: Array<'manha' | 'tarde' | 'noite'>
 }
 
 /**
  * Header com identidade SENAI.
  * Barra vermelha #e30613 com logo branco e filtros de período em vermelho.
  */
-export function Header({ onPeriodChange }: HeaderProps) {
+const DEFAULT_PERIOD_KEYS: Array<'manha' | 'tarde' | 'noite'> = ['manha', 'tarde', 'noite']
+
+export function Header({ onPeriodChange, periodKeys = DEFAULT_PERIOD_KEYS }: HeaderProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>(null)
 
   const handlePeriodClick = (period: Period) => {
@@ -19,11 +23,13 @@ export function Header({ onPeriodChange }: HeaderProps) {
     onPeriodChange(newPeriod)
   }
 
-  const periods: { key: Period; label: string }[] = [
-    { key: 'manha', label: 'Manhã' },
-    { key: 'tarde', label: 'Tarde' },
-    { key: 'noite', label: 'Noite' },
-  ]
+  const periodLabels: Record<'manha' | 'tarde' | 'noite', string> = {
+    manha: 'Manhã',
+    tarde: 'Tarde',
+    noite: 'Noite',
+  }
+
+  const periods = periodKeys.map((key) => ({ key: key as Period, label: periodLabels[key] }))
 
   return (
     <header className="sticky top-0 z-30 shadow-md">
