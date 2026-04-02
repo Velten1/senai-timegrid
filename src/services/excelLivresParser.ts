@@ -20,6 +20,11 @@ import {
   parseTimeString,
 } from './excelParseHelpers'
 
+/** Texto de célula (NBSP do Google/Excel → espaço normal). */
+function cellStr(v: unknown): string {
+  return String(v ?? '').replace(/\u00a0/g, ' ').trim()
+}
+
 // ── Tipos internos ────────────────────────────────────────
 
 interface LivresHeaderBlock {
@@ -42,7 +47,7 @@ function findLivresHeaderBlocks(data: any[][]): LivresHeaderBlock[] {
 
     const dayPositions: { day: number; col: number }[] = []
     for (let ci = 0; ci < row.length; ci++) {
-      const text = String(row[ci] || '').trim()
+      const text = cellStr(row[ci])
       const dayNum = getDayNumberFromText(text)
       if (dayNum !== null && !dayPositions.some(dp => dp.day === dayNum)) {
         dayPositions.push({ day: dayNum, col: ci })
@@ -55,7 +60,7 @@ function findLivresHeaderBlocks(data: any[][]): LivresHeaderBlock[] {
     const nextRow = data[ri + 1] || []
     let hasT1T2 = false
     for (let ci = 0; ci < nextRow.length; ci++) {
-      const v = String(nextRow[ci] || '').trim().toUpperCase()
+      const v = cellStr(nextRow[ci]).toUpperCase()
       if (v === 'T1' || v === 'T2') { hasT1T2 = true; break }
     }
     if (hasT1T2) continue
@@ -70,7 +75,7 @@ function findLivresHeaderBlocks(data: any[][]): LivresHeaderBlock[] {
 
     for (const sRow of scanRows) {
       for (let c = 0; c < sRow.length; c++) {
-        const cell = String(sRow[c] || '').toLowerCase().trim()
+        const cell = cellStr(sRow[c]).toLowerCase()
         if (cell === 'classe' || cell === 'turma' || cell === 'curso') classeCol = c
         if (cell === 'aula') aulaCol = c
         if (cell.includes('horário') || cell.includes('horario')) horarioCol = c
@@ -117,13 +122,21 @@ const RESERVED_RE = /^(disciplina|professor|local|info|turma|intervalo|hor[áa]r
  * Verifica se o texto parece ser um nome de curso para Livres/FIC.
  * Mais permissivo que isTurmaName (aceita espaços, ex.: "CCNA V7", "AWS Cloud").
  */
+/** Mesmo teto que isTurmaName — nomes longos na coluna CLASSE. */
+const LIVRES_COURSE_NAME_MAX_LEN = 120
+
 function isLivresCourseName(value: string): boolean {
-  if (!value || value.length > 40 || value.length < 2) return false
-  if (RESERVED_RE.test(value)) return false
-  if (/segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|semestre|manh[ãa]|tarde|noite|trimestre/i.test(value)) return false
-  if (/^(1[ºo]|2[ºo])\s/i.test(value)) return false
-  if (/^\d+[ªº°]$/i.test(value)) return false
-  return /^[\dA-Z][\dA-Za-zÀ-ÿ\s\-\.\/\+\#]+$/i.test(value)
+  const v = cellStr(value)
+  if (!v || v.length < 2 || v.length > LIVRES_COURSE_NAME_MAX_LEN) return false
+  if (RESERVED_RE.test(v)) return false
+  if (/segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|semestre|manh[ãa]|tarde|noite|trimestre/i.test(v)) {
+    return false
+  }
+  if (/^(1[ºo°]|2[ºo°])\s/i.test(v)) return false
+  if (/^\d+[ªº°]$/i.test(v)) return false
+  if (/[\r\n]/.test(v)) return false
+  // Texto livre na prática; mantém rejeição de só-pontuação estranha
+  return /^[\s\S]*\S[\s\S]*$/.test(v)
 }
 
 // ── Parser principal ──────────────────────────────────────
@@ -192,8 +205,8 @@ export function parseLivresSheetData(
           ?? { start: '00:00', end: '00:00' }
 
         for (const { day, col } of block.dayMapping) {
-          const professor = String(a.professorRow[col] || '').trim()
-          const local = String(a.localRow[col] || '').trim()
+          const professor = cellStr(a.professorRow[col])
+          const local = cellStr(a.localRow[col])
 
           if (!professor && !local) continue
           if (RESERVED_RE.test(professor)) continue
@@ -220,17 +233,17 @@ export function parseLivresSheetData(
       if (!row || row.length === 0) { ri++; continue }
 
       // Detectar nome do curso (coluna CLASSE)
-      const classeCell = String(row[block.classeCol] || '').trim()
+      const classeCell = cellStr(row[block.classeCol])
       if (classeCell && isLivresCourseName(classeCell) && classeCell !== currentCurso) {
         flushAulas()
         currentCurso = classeCell
         console.log(`   [Livres] Curso: ${currentCurso}`)
       }
 
-      const infoCell = String(row[block.infoCol] || '').trim().toLowerCase()
+      const infoCell = cellStr(row[block.infoCol]).toLowerCase()
 
       // Pular linhas de intervalo
-      if (/intervalo/i.test(infoCell) || /intervalo/i.test(String(row[block.aulaCol] || ''))) {
+      if (/intervalo/i.test(infoCell) || /intervalo/i.test(cellStr(row[block.aulaCol]))) {
         ri++; continue
       }
 
@@ -240,12 +253,12 @@ export function parseLivresSheetData(
         const localRow = data[ri + 1] || []
 
         // Extrair número da aula
-        const aulaCell = String(row[block.aulaCol] || '').trim()
+        const aulaCell = cellStr(row[block.aulaCol])
         const aulaMatch = aulaCell.match(/(\d+)/)
         const aulaNum = aulaMatch ? parseInt(aulaMatch[1], 10) : aulaAccum.length + 1
 
         // Extrair horário
-        const horarioStr = String(row[block.horarioCol] || '').trim()
+        const horarioStr = cellStr(row[block.horarioCol])
 
         aulaAccum.push({ aulaNum, horarioStr, professorRow, localRow })
         ri += 2
@@ -257,11 +270,11 @@ export function parseLivresSheetData(
         const professorRow = data[ri + 1] || []
         const localRow = data[ri + 2] || []
 
-        const aulaCell = String(row[block.aulaCol] || '').trim()
+        const aulaCell = cellStr(row[block.aulaCol])
         const aulaMatch = aulaCell.match(/(\d+)/)
         const aulaNum = aulaMatch ? parseInt(aulaMatch[1], 10) : aulaAccum.length + 1
 
-        const horarioStr = String(row[block.horarioCol] || '').trim()
+        const horarioStr = cellStr(row[block.horarioCol])
 
         aulaAccum.push({ aulaNum, horarioStr, professorRow, localRow })
         ri += 3

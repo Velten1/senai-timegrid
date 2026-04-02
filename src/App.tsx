@@ -17,6 +17,9 @@ function App() {
               <TotemIdleReturn idleMs={20_000} />
               <Routes>
                 <Route path="/" element={<Home />} />
+                {/* Técnicos: período na URL (manhã / tarde) antes da lista de turmas */}
+                <Route path="/cursos/tecnico/:period" element={<CoursesByModality />} />
+                <Route path="/cursos/tecnico" element={<CoursesByModality />} />
                 <Route path="/cursos/:modality" element={<CoursesByModality />} />
               </Routes>
             </BrowserRouter>

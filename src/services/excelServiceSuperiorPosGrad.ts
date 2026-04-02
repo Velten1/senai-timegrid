@@ -1,11 +1,12 @@
 /**
  * Serviço de parsing de planilhas Excel para Cursos Superiores e Pós-Graduação.
- * 
+ *
  * Este arquivo:
- * - Baixa a planilha do SharePoint
+ * - Baixa a planilha (.xlsx — Google Sheets export ou outra URL via env)
  * - Classifica as abas (superior / pós-graduação)
  * - Extrai a legenda de siglas (mapeamento sigla → nome completo)
  * - Delega o parsing detalhado para excelSuperiorPosGradParser
+ * - Lê células com sheetToMatrix (mesclagens resolvidas, compatível com Google)
  * - Usa cache com hash para evitar re-parse quando a planilha não mudou
  */
 
@@ -14,13 +15,18 @@ import type { ParsedClass, ExcelData } from './excelServiceTecnicos'
 import { parseSheetData } from './excelSuperiorPosGradParser'
 import { hashArrayBuffer } from '../utils/hashUtils'
 import { detectPeriod } from './excelParseHelpers'
+import { sheetToMatrix } from './excelSheetMatrix'
 
 // Cache em memória: guarda o hash e o resultado parseado
 let _cache: { hash: string; result: SuperiorPosGradData } | null = null
 
-// URL da planilha no SharePoint
+// Google Sheets → export .xlsx (planilha: Horários Superior e Pós Graduação)
+const EXCEL_URL_DEFAULT =
+  'https://docs.google.com/spreadsheets/d/1uwxdME9UwONTshjW0XQ5cxhXrbE8fOXI/export?format=xlsx'
+
+const _supPosUrlOverride = import.meta.env.VITE_EXCEL_SUPERIOR_POSGRAD_URL?.trim() ?? ''
 const EXCEL_URL =
-  'https://fiapcom-my.sharepoint.com/personal/rm572913_fiap_com_br/_layouts/15/download.aspx?share=IQDyto4bs8gESoxty7LExzy3AQdOdvWgxp4BzI3dTiAc3J0'
+  _supPosUrlOverride.length > 0 ? _supPosUrlOverride : EXCEL_URL_DEFAULT
 
 // ── Tipos exportados ──────────────────────────────────────
 
@@ -33,14 +39,17 @@ export interface SuperiorPosGradData {
 // ── Funções auxiliares ──────────────────────────────────────────────
 
 /**
- * Baixa a planilha Excel do SharePoint e retorna como ArrayBuffer
+ * Baixa a planilha (.xlsx) e retorna como ArrayBuffer
  */
 async function downloadExcel(): Promise<ArrayBuffer> {
-  console.log('Baixando Excel (Superior + Pos-Grad)...')
-  const res = await fetch(EXCEL_URL)
-  if (!res.ok) throw new Error(`Download falhou: ${res.status}`)
+  console.log('Baixando planilha (Superior + Pós-Grad)...')
+  const res = await fetch(EXCEL_URL, {
+    cache: 'no-store',
+    headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+  })
+  if (!res.ok) throw new Error(`Download falhou (Superior/Pós-Grad): ${res.status}`)
   const buf = await res.arrayBuffer()
-  console.log(`Excel baixado: ${(buf.byteLength / 1024).toFixed(0)} KB`)
+  console.log(`Planilha baixada: ${(buf.byteLength / 1024).toFixed(0)} KB`)
   return buf
 }
 
@@ -133,7 +142,7 @@ export async function parseExcelFileSuperiorPosGrad(): Promise<SuperiorPosGradDa
   console.log('[Superior/PosGrad] Planilha mudou — re-parseando...\n')
 
   // 3. Parsear planilha
-  const wb = XLSX.read(buf, { type: 'array' })
+  const wb = XLSX.read(buf, { type: 'array', cellDates: true })
 
   console.log('Abas:', wb.SheetNames.join(', '))
 
@@ -146,7 +155,7 @@ export async function parseExcelFileSuperiorPosGrad(): Promise<SuperiorPosGradDa
     const ws = wb.Sheets[name]
     if (!ws) continue
 
-    const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false })
+    const data = sheetToMatrix(ws)
     const type = classifySheet(data)
 
     // Pular abas desconhecidas

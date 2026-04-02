@@ -15,21 +15,22 @@ import { hashArrayBuffer } from '../utils/hashUtils'
 import { parseTimeString, detectPeriod } from './excelParseHelpers'
 import { parseSheetData as parseSheetStructured } from './excelSuperiorPosGradParser'
 import { parseLivresSheetData } from './excelLivresParser'
+import { sheetToMatrix } from './excelSheetMatrix'
 
 // Cache em memória: guarda o hash e o resultado parseado
 let _cache: { hash: string; result: ExcelData } | null = null
 
-// URL da planilha de Cursos Livres no SharePoint
+// URL da planilha de Cursos Livres (Google Sheets → export .xlsx)
 const EXCEL_LIVRES_URL =
-  'https://fiapcom-my.sharepoint.com/personal/rm572913_fiap_com_br/_layouts/15/download.aspx?share=IQBCz7RtFpBCQ4RpVaiQ2f8yAXD25lIeqAX7daqPHpwGDFA'
+  'https://docs.google.com/spreadsheets/d/1BIXy19vCS88jZBNUzYCHTYHKFKbpFQWy/export?format=xlsx'
 
 // ── Funções auxiliares ───────────────────────────────────────────────
 
 /**
- * Baixa a planilha Excel do SharePoint e retorna como ArrayBuffer
+ * Baixa a planilha (.xlsx) e retorna como ArrayBuffer
  */
 async function downloadExcel(url: string): Promise<ArrayBuffer> {
-  console.log('Baixando Excel do SharePoint (Cursos Livres)...')
+  console.log('Baixando planilha (Cursos Livres)...')
   const response = await fetch(url, {
     cache: 'no-store',
     headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
@@ -59,7 +60,8 @@ function parseWithLivresFormat(workbook: XLSX.WorkBook): ParsedClass[] {
     const ws = workbook.Sheets[name]
     if (!ws) continue
 
-    const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false })
+    // Matriz com mesclagens resolvidas (Google Sheets / Excel — CLASSE mesclada)
+    const data = sheetToMatrix(ws)
     if (data.length < 3) continue
 
     const period = detectPeriod(data, 'sabado')
@@ -89,7 +91,7 @@ function parseWithStructuredFormat(workbook: XLSX.WorkBook): ParsedClass[] {
     const ws = workbook.Sheets[name]
     if (!ws) continue
 
-    const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false })
+    const data = sheetToMatrix(ws)
     if (data.length < 3) continue
 
     const period = detectPeriod(data, 'sabado')
@@ -221,7 +223,7 @@ function parseLegacyFormat(workbook: XLSX.WorkBook): ParsedClass[] {
   const ws = workbook.Sheets[sabadoSheet]
   if (!ws) return []
 
-  const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false })
+  const data = sheetToMatrix(ws)
   console.log(`   ${data.length} linhas encontradas`)
 
   const allClasses: ParsedClass[] = []
@@ -290,11 +292,12 @@ function parseLegacyFormat(workbook: XLSX.WorkBook): ParsedClass[] {
 
 /**
  * Função principal: baixa e parseia a planilha de Cursos Livres
- * 
- * Estratégia:
- * 1. Tenta o formato estruturado (CLASSE/AULA/HORÁRIO — compatível com Superior/PosGrad)
- * 2. Se não encontrar nada, faz fallback para o formato legado (salas na coluna A)
- * 
+ *
+ * Estratégia (em ordem de prioridade):
+ * 1. Parser dedicado Livres (sem T1/T2 — uma coluna por dia)
+ * 2. Fallback: parser estruturado Superior/PosGrad (com T1/T2)
+ * 3. Fallback: parser legado (salas na coluna A)
+ *
  * Usa cache com hash para evitar re-parse quando a planilha não mudou
  */
 export async function parseExcelFileLivres(): Promise<ExcelData> {
@@ -312,8 +315,8 @@ export async function parseExcelFileLivres(): Promise<ExcelData> {
 
   console.log('[Livres] Planilha mudou — re-parseando...\n')
 
-  // 3. Parsear planilha
-  const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+  // 3. Parsear planilha (cellDates ajuda horários; mesclagens via sheetToMatrix)
+  const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true })
   console.log('Abas disponíveis:', workbook.SheetNames)
 
   // 1) Parser dedicado Livres (sem T1/T2)

@@ -1,23 +1,33 @@
 /**
  * Serviço de parsing de planilhas Excel para Cursos Técnicos (Manhã e Tarde).
- * 
+ *
  * Este arquivo:
- * - Baixa as planilhas do SharePoint (Manhã e Tarde)
+ * - Baixa as planilhas (.xlsx — Google Sheets export ou URL via env)
  * - Detecta blocos de cabeçalho T1/T2 nas planilhas
  * - Extrai informações de aulas (turma, horário, professor, sala, matéria)
+ * - Lê células com sheetToMatrix (mesclagens resolvidas, compatível com Google)
  * - Usa cache com hash para evitar re-parse quando a planilha não mudou
  */
 
 import * as XLSX from 'xlsx'
 import { hashArrayBuffer } from '../utils/hashUtils'
 import { parseTimeRange, isTurmaName } from './excelParseHelpers'
+import { sheetToMatrix } from './excelSheetMatrix'
 
-// URLs das planilhas no SharePoint
+// Google Sheets → export .xlsx (Horários Manhã / Tarde — CAI e Cursos Técnicos)
+const EXCEL_MANHA_URL_DEFAULT =
+  'https://docs.google.com/spreadsheets/d/1fS68_Lc-B2qryadmdY-Fld8vlQN_Zloz/export?format=xlsx&gid=1460763838'
+
+const EXCEL_TARDE_URL_DEFAULT =
+  'https://docs.google.com/spreadsheets/d/1jJupddrUKqZtS14xmvdf8O8uXBhEgUmT/export?format=xlsx'
+
+const _manhaOverride = import.meta.env.VITE_EXCEL_TECNICOS_MANHA_URL?.trim() ?? ''
+const _tardeOverride = import.meta.env.VITE_EXCEL_TECNICOS_TARDE_URL?.trim() ?? ''
+
 const EXCEL_MANHA_URL =
-  'https://fiapcom-my.sharepoint.com/personal/rm572913_fiap_com_br/_layouts/15/download.aspx?share=IQAGYx9pSpz3QaP_8kCZ70VoATRNCdNttGnAZ0KTp2fYjuk'
-
+  _manhaOverride.length > 0 ? _manhaOverride : EXCEL_MANHA_URL_DEFAULT
 const EXCEL_TARDE_URL =
-  'https://fiapcom-my.sharepoint.com/personal/rm572913_fiap_com_br/_layouts/15/download.aspx?share=IQBm3Xp-sKjfTYEiwiGLcx8KARrghayT1ba_suBXXAhfF9M'
+  _tardeOverride.length > 0 ? _tardeOverride : EXCEL_TARDE_URL_DEFAULT
 
 // Cache em memória: guarda o hash e o resultado parseado para evitar re-parse desnecessário
 let _cache: { hash: string; result: ExcelData } | null = null
@@ -44,18 +54,21 @@ export interface ExcelData {
 // ── Funções auxiliares ────────────────────────────────────────────
 
 /**
- * Baixa uma planilha Excel do SharePoint e retorna como ArrayBuffer
+ * Baixa uma planilha (.xlsx) e retorna como ArrayBuffer
  */
 async function downloadExcel(url: string, period: string): Promise<ArrayBuffer> {
-  console.log(`Baixando Excel do SharePoint (${period})...`)
-  const response = await fetch(url)
+  console.log(`Baixando planilha (${period})...`)
+  const response = await fetch(url, {
+    cache: 'no-store',
+    headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+  })
 
   if (!response.ok) {
-    throw new Error(`Erro ao baixar Excel (${period}): ${response.status} ${response.statusText}`)
+    throw new Error(`Erro ao baixar planilha (${period}): ${response.status} ${response.statusText}`)
   }
 
   const arrayBuffer = await response.arrayBuffer()
-  console.log(`Excel baixado (${period}): ${(arrayBuffer.byteLength / 1024).toFixed(2)} KB`)
+  console.log(`Planilha baixada (${period}): ${(arrayBuffer.byteLength / 1024).toFixed(2)} KB`)
   return arrayBuffer
 }
 
@@ -126,7 +139,7 @@ function findHeaderBlocks(data: any[][]): HeaderBlock[] {
  * Parseia uma planilha Excel (Manhã ou Tarde) e extrai todas as aulas
  */
 function parseSingleExcelData(arrayBuffer: ArrayBuffer, periodLabel: string): ExcelData {
-  const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+  const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true })
 
   // Determinar período: "MANHÃ" → "manha", "TARDE" → "tarde"
   const period: 'manha' | 'tarde' = periodLabel.toUpperCase().includes('MANH') ? 'manha' : 'tarde'
@@ -139,11 +152,7 @@ function parseSingleExcelData(arrayBuffer: ArrayBuffer, periodLabel: string): Ex
   // Processar cada aba da planilha
   for (const sheetName of workbook.SheetNames) {
     const ws = workbook.Sheets[sheetName]
-    const data: any[][] = XLSX.utils.sheet_to_json(ws, {
-      header: 1,
-      defval: '',
-      raw: false,
-    })
+    const data = sheetToMatrix(ws)
 
     console.log(`\nAba "${sheetName}" (${period}) — ${data.length} linhas`)
 

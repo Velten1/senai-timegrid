@@ -49,14 +49,19 @@ export function parseTimeRange(horario: string): { start: string; end: string } 
 
 // ── Detecção de turmas ────────────────────────────────────
 
+const TURMA_NAME_MAX_LEN = 120
+
 /**
- * Verifica se uma string parece ser um nome de turma
- * Exemplos válidos: "CSTELI226N1", "17MGF", "2MB"
+ * Verifica se uma string parece ser um nome de turma/classe.
+ * Aceita texto livre (espaços, acentos, símbolos comuns), exceto palavras/dias reservados.
+ * Exemplos válidos: "CSTELI226N1", "17MGF TESTE", "MBA — Turma A"
  */
 export function isTurmaName(value: string): boolean {
-  if (!value || value.length > 25 || value.length < 2) return false
-  const low = value.toLowerCase()
-  // Lista de palavras reservadas que não são turmas
+  const trimmed = String(value ?? '')
+    .replace(/\u00a0/g, ' ')
+    .trim()
+  if (!trimmed || trimmed.length < 2 || trimmed.length > TURMA_NAME_MAX_LEN) return false
+  const low = trimmed.toLowerCase()
   const reserved = [
     'turma', 'aula', 'horário', 'horario', 'intervalo',
     't1', 't2', 'cai', 'cursos', 'classe', 'info',
@@ -64,12 +69,14 @@ export function isTurmaName(value: string): boolean {
     'ensalamento', 'semestral',
   ]
   if (reserved.some((r) => low === r)) return false
-  // Rejeitar strings que contêm nomes de dias, períodos, etc
-  if (/segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|semestre|manh[ãa]|tarde|noite|trimestre/i.test(value)) return false
-  if (/^(1[ºo]|2[ºo])\s/i.test(value)) return false
-  if (/intervalo/i.test(value)) return false
-  // Turma: começa com dígito ou letra, alfanumérico + hífens/pontos
-  return /^[\dA-Z][\dA-Za-z\-\.]*$/i.test(value)
+  // Evitar confundir com cabeçalhos de dia/período (substring em qualquer lugar)
+  if (/segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|semestre|manh[ãa]|tarde|noite|trimestre/i.test(trimmed)) {
+    return false
+  }
+  if (/^(1[ºo°]|2[ºo°])\s/i.test(trimmed)) return false
+  if (/intervalo/i.test(trimmed)) return false
+  if (/[\r\n]/.test(trimmed)) return false
+  return true
 }
 
 // ── Mapeamento de dias da semana ──────────────────────────
