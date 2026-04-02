@@ -34,8 +34,8 @@ function formatAvisoPeriodo(
     if (same) return short(dataInicio)
     return `${short(dataInicio)} — ${short(dataFim)}`
   }
-  if (dataInicio) return `De ${short(dataInicio)}`
-  if (dataFim) return `Até ${short(dataFim)}`
+  if (dataInicio) return short(dataInicio)
+  if (dataFim) return short(dataFim)
   return null
 }
 
@@ -92,7 +92,8 @@ function Home() {
     date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
   return (
-    <div className="min-h-screen bg-[#ededed] font-montserrat">
+    <div className="flex min-h-[100dvh] w-full flex-col bg-[#ededed] font-montserrat">
+      <div className="flex flex-col flex-1 min-w-0">
       {/* ══ TOP BAR VERMELHO — igual site SENAI ══ */}
       <div className="bg-[#e30613] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
@@ -245,14 +246,15 @@ function Home() {
           </div>
         </section>
       </div>
+      </div>
 
       {/* ══ FOOTER VERMELHO — igual site SENAI ══ */}
-      <footer className="bg-[#e30613] mt-8">
+      <footer className="shrink-0 bg-[#e30613] mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col items-center gap-3">
           {/* Logo SENAI branca no footer vermelho */}
           <img src={senaiWhiteLogo} alt="SENAI" className="h-7" />
           <p className="text-white/80 text-xs">
-            Grade de Horários — Sistema de Grade de Horários e Localização de Cursos
+            Grade de Horários | Sistema de Grade de Horários e Localização de Cursos
           </p>
         </div>
       </footer>

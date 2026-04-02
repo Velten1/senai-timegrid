@@ -70,9 +70,9 @@ function parseExcelSerial(n: number): Date | null {
 }
 
 /**
- * Converte qualquer valor de célula de data para Date.
- * Aceita: número serial do Excel, DD/MM/AAAA, DD-MM-AAAA,
- *         AAAA-MM-DD, e variantes com hora (ignora a hora).
+ * Converte qualquer valor de célula de data para Date (só dia local; ignora hora).
+ * Texto com barras: sempre **brasileiro** D/M/AAAA ou DD/MM/AAAA (dia, mês, ano).
+ * Também aceita serial numérico do Excel e ISO AAAA-MM-DD (se aparecer como texto).
  */
 function parseDateCell(value: unknown): Date | null {
   if (value == null || value === '') return null
@@ -86,19 +86,21 @@ function parseDateCell(value: unknown): Date | null {
   const s = String(value).trim()
   if (!s) return null
 
-  // DD/MM/AAAA ou DD-MM-AAAA (com hora opcional)
-  const brMatch = s.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})/)
-  if (brMatch) {
-    const [, d, mo, y] = brMatch
-    const date = new Date(Number(y), Number(mo) - 1, Number(d))
-    return isNaN(date.getTime()) ? null : date
-  }
-
-  // AAAA-MM-DD (ISO, com hora opcional)
+  // AAAA-MM-DD (ISO; ano primeiro — só se vier assim no texto)
   const isoMatch = s.match(/^(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})/)
   if (isoMatch) {
     const [, y, mo, d] = isoMatch
     const date = new Date(Number(y), Number(mo) - 1, Number(d))
+    return isNaN(date.getTime()) ? null : date
+  }
+
+  // D/M/AAAA ou DD/MM/AAAA (com hora opcional depois) — sempre dia / mês / ano
+  const slashMatch = s.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})/)
+  if (slashMatch) {
+    const day = Number(slashMatch[1])
+    const monthIndex = Number(slashMatch[2]) - 1
+    const y = Number(slashMatch[3])
+    const date = new Date(y, monthIndex, day)
     return isNaN(date.getTime()) ? null : date
   }
 
