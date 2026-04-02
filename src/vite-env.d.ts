@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_EXCEL_TECNICOS_MANHA_URL?: string
   /** Sobrescreve a URL de export da planilha Cursos Técnicos — Tarde. */
   readonly VITE_EXCEL_TECNICOS_TARDE_URL?: string
+  /** Sobrescreve a URL de export da planilha Avisos/Eventos. */
+  readonly VITE_EXCEL_AVISOS_URL?: string
 }
 
 declare module '*.png' {

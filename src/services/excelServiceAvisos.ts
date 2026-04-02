@@ -10,15 +10,20 @@
  * - Detecta o cabeçalho automaticamente (procura a linha com "Texto")
  * - Lê cada célula pelo endereço (não só sheet_to_json), resolvendo mesclagens
  * - Só retorna linhas com coluna "Ativo" = sim / 1 / boolean TRUE (case-insensitive)
- * - Download com cache desativado no fetch para reduzir arquivo antigo do SharePoint
+ * - Download com cache desativado no fetch (Google Sheets / CDN)
  * - Usa cache em memória (hash) para evitar re-parse quando o arquivo não mudou
  */
 
 import * as XLSX from 'xlsx'
 import { hashArrayBuffer } from '../utils/hashUtils'
 
+// Google Sheets → export .xlsx (planilha: Avisos e Eventos)
+const EXCEL_AVISOS_URL_DEFAULT =
+  'https://docs.google.com/spreadsheets/d/1zox_rW3qyQA3Rqi4oa_prctgrjclwLBJ/export?format=xlsx'
+
+const _avisosOverride = import.meta.env.VITE_EXCEL_AVISOS_URL?.trim() ?? ''
 const EXCEL_AVISOS_URL =
-  'https://fiapcom-my.sharepoint.com/personal/rm572913_fiap_com_br/_layouts/15/download.aspx?share=IQCiUOrqnNj8SYgUlMm38GPAAc1aZVgvvPLD6mtfhLGRo3s'
+  _avisosOverride.length > 0 ? _avisosOverride : EXCEL_AVISOS_URL_DEFAULT
 
 // ── Tipos ──────────────────────────────────────────────
 
@@ -41,7 +46,7 @@ let _cache: { hash: string; result: AvisosData } | null = null
 // ── Helpers ────────────────────────────────────────────
 
 async function downloadExcel(): Promise<ArrayBuffer> {
-  console.log('Baixando Excel (Avisos)...')
+  console.log('Baixando planilha (Avisos)...')
   const res = await fetch(EXCEL_AVISOS_URL, {
     cache: 'no-store',
     headers: {
@@ -51,7 +56,7 @@ async function downloadExcel(): Promise<ArrayBuffer> {
   })
   if (!res.ok) throw new Error(`Download falhou (Avisos): ${res.status}`)
   const buf = await res.arrayBuffer()
-  console.log(`Excel baixado (Avisos): ${(buf.byteLength / 1024).toFixed(0)} KB`)
+  console.log(`Planilha baixada (Avisos): ${(buf.byteLength / 1024).toFixed(0)} KB`)
   return buf
 }
 
