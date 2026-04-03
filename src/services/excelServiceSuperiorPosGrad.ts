@@ -1,13 +1,11 @@
 /**
- * Serviço de parsing de planilhas Excel para Cursos Superiores e Pós-Graduação.
+ * Serviço de parsing de planilhas Excel para Cursos Superiores, MBA e Pós (POS).
  *
- * Este arquivo:
- * - Baixa a planilha (.xlsx — Google Sheets export ou outra URL via env)
- * - Classifica as abas (superior / pós-graduação)
- * - Extrai a legenda de siglas (mapeamento sigla → nome completo)
- * - Delega o parsing detalhado para excelSuperiorPosGradParser
- * - Lê células com sheetToMatrix (mesclagens resolvidas, compatível com Google)
- * - Usa cache com hash para evitar re-parse quando a planilha não mudou
+ * Convenção de nomes de aba (Google Sheets / Excel):
+ *   SUP_*  → Cursos superiores (/cursos/superior)
+ *   MBA_*  → Especialização MBA (/cursos/especializacao/mba)
+ *   POS_*  → Pós-graduação (/cursos/especializacao/pos)
+ * Abas sem esses prefixos são ignoradas (aviso no console).
  */
 
 import * as XLSX from 'xlsx'
@@ -30,10 +28,18 @@ const EXCEL_URL =
 
 // ── Tipos exportados ──────────────────────────────────────
 
+/** Uma aba = um botão na UI; `label` é o nome sem prefixo SUP_/MBA_/POS_. */
+export interface SuperiorSheetEntry {
+  sheetName: string
+  label: string
+  data: ExcelData
+}
+
 export interface SuperiorPosGradData {
-  superiores: ExcelData
-  posGraduacao: ExcelData
-  courseNameMap: Record<string, string> // Mapeamento sigla → nome completo
+  superiorSheets: SuperiorSheetEntry[]
+  mbaSheets: SuperiorSheetEntry[]
+  posSheets: SuperiorSheetEntry[]
+  courseNameMap: Record<string, string>
 }
 
 // ── Funções auxiliares ──────────────────────────────────────────────
@@ -53,19 +59,25 @@ async function downloadExcel(): Promise<ArrayBuffer> {
   return buf
 }
 
-/**
- * Classifica uma aba como "superior", "pos-graduacao" ou "unknown"
- * Analisa as primeiras 5 linhas procurando por palavras-chave
- */
-type SheetType = 'superior' | 'pos-graduacao' | 'unknown'
+type SheetPrefix = 'SUP' | 'MBA' | 'POS'
 
-function classifySheet(data: any[][]): SheetType {
-  for (let i = 0; i < Math.min(5, data.length); i++) {
-    const text = (data[i] || []).map((c: any) => String(c || '')).join(' ').toUpperCase()
-    if (text.includes('CURSO SUPERIOR')) return 'superior'
-    if (/PÓS[- ]?GRADUA[ÇC]|POS[- ]?GRADUA[ÇC]|MBA\s/i.test(text)) return 'pos-graduacao'
-  }
-  return 'unknown'
+/** SUP_nome, MBA_nome ou POS_nome (underscore, hífen ou espaço após o prefixo). */
+function getSheetPrefix(sheetName: string): SheetPrefix | null {
+  const s = sheetName.trim()
+  if (/^SUP(?:[_\s-]|$)/i.test(s)) return 'SUP'
+  if (/^MBA(?:[_\s-]|$)/i.test(s)) return 'MBA'
+  if (/^POS(?:[_\s-]|$)/i.test(s)) return 'POS'
+  return null
+}
+
+/** Texto do botão: remove SUP_/MBA_/POS_ e troca _ por espaço. */
+function displayLabelFromSheetName(sheetName: string): string {
+  const rest = sheetName
+    .trim()
+    .replace(/^(SUP|MBA|POS)(?:[_\s-]+|$)/i, '')
+    .replace(/_/g, ' ')
+    .trim()
+  return rest.length > 0 ? rest : sheetName.trim()
 }
 
 // detectPeriod importado de excelParseHelpers
@@ -146,54 +158,70 @@ export async function parseExcelFileSuperiorPosGrad(): Promise<SuperiorPosGradDa
 
   console.log('Abas:', wb.SheetNames.join(', '))
 
-  const supClasses: ParsedClass[] = []
-  const pgClasses: ParsedClass[] = []
+  const superiorSheets: SuperiorSheetEntry[] = []
+  const mbaSheets: SuperiorSheetEntry[] = []
+  const posSheets: SuperiorSheetEntry[] = []
   const courseNameMap: Record<string, string> = {}
+
+  const sortByLabel = (a: SuperiorSheetEntry, b: SuperiorSheetEntry) =>
+    a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' })
 
   // Processar cada aba
   for (const name of wb.SheetNames) {
     const ws = wb.Sheets[name]
     if (!ws) continue
 
+    const prefix = getSheetPrefix(name)
+    if (!prefix) {
+      console.warn(`[Superior/PosGrad] Aba ignorada (use prefixo SUP_, MBA_ ou POS_): "${name}"`)
+      continue
+    }
+
     const data = sheetToMatrix(ws)
-    const type = classifySheet(data)
-
-    // Pular abas desconhecidas
-    if (type === 'unknown') continue
-
     const period = detectPeriod(data)
-    console.log(`\n--- "${name}" → ${type} (${period}) ---`)
+    console.log(`\n--- "${name}" → ${prefix} (${period}) ---`)
 
-    // Extrair legenda de siglas desta aba
     Object.assign(courseNameMap, extractCourseNameMap(data))
 
-    // Parsear aulas desta aba
     const classes = parseSheetData(data, name, period)
-    if (classes.length === 0) { console.log('   Sem aulas'); continue }
+    if (classes.length === 0) {
+      console.log('   Sem aulas')
+      continue
+    }
 
     console.log(`   ${classes.length} aula(s)`)
 
-    // Separar por tipo
-    if (type === 'superior') {
-      supClasses.push(...classes)
-    } else {
-      pgClasses.push(...adjustSaturdayPeriod(classes))
+    const ready =
+      prefix === 'SUP' ? classes : adjustSaturdayPeriod(classes)
+    const entry: SuperiorSheetEntry = {
+      sheetName: name,
+      label: displayLabelFromSheetName(name),
+      data: { classes: ready, announcements: [] },
     }
+
+    if (prefix === 'SUP') superiorSheets.push(entry)
+    else if (prefix === 'MBA') mbaSheets.push(entry)
+    else posSheets.push(entry)
   }
 
-  // Resumo final
-  const log = (label: string, arr: ParsedClass[]) => {
-    const t = [...new Set(arr.map(c => c.turma))]
-    console.log(`${label}: ${arr.length} aulas, ${t.length} turma(s)`)
-  }
+  superiorSheets.sort(sortByLabel)
+  mbaSheets.sort(sortByLabel)
+  posSheets.sort(sortByLabel)
+
+  const sumAulas = (arr: SuperiorSheetEntry[]) =>
+    arr.reduce((n, e) => n + e.data.classes.length, 0)
   console.log('')
-  log('SUPERIORES', supClasses)
-  log('POS-GRAD', pgClasses)
+  console.log(
+    `SUP: ${superiorSheets.length} aba(s), ${sumAulas(superiorSheets)} aula(s) | ` +
+      `MBA: ${mbaSheets.length} aba(s), ${sumAulas(mbaSheets)} aula(s) | ` +
+      `POS: ${posSheets.length} aba(s), ${sumAulas(posSheets)} aula(s)`,
+  )
   console.log(`LEGENDA: ${Object.keys(courseNameMap).length} sigla(s)`)
 
   const result: SuperiorPosGradData = {
-    superiores: { classes: supClasses, announcements: [] },
-    posGraduacao: { classes: pgClasses, announcements: [] },
+    superiorSheets,
+    mbaSheets,
+    posSheets,
     courseNameMap,
   }
 

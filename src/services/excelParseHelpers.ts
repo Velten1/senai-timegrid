@@ -141,6 +141,29 @@ export function detectPeriod(
   return defaultPeriod
 }
 
+// ── Extração de horário de uma célula ─────────────────────
+
+/**
+ * Extrai início e fim de uma string de horário de célula.
+ * Aceita "8h - 9h", "8h–9h" (faixa) ou "8h" (horário único — assume 1h de duração).
+ * Retorna null se nenhum dígito for encontrado.
+ */
+export function extractTimeFromCell(horarioStr: string): { start: string; end: string } | null {
+  if (!horarioStr) return null
+  if (horarioStr.includes('-') || horarioStr.includes('–')) {
+    return parseTimeRange(horarioStr)
+  }
+  if (/\d/.test(horarioStr)) {
+    const s = parseTimeString(horarioStr)
+    const [h, m] = s.split(':').map(Number)
+    const endMin = h * 60 + m + 60
+    const eH = Math.min(Math.floor(endMin / 60), 23)
+    const eM = endMin % 60
+    return { start: s, end: `${String(eH).padStart(2, '0')}:${String(eM).padStart(2, '0')}` }
+  }
+  return null
+}
+
 // ── Cálculo de horários intermediários ────────────────────
 
 /**

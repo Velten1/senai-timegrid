@@ -14,10 +14,9 @@
 
 import type { ParsedClass } from './excelServiceTecnicos'
 import {
-  parseTimeRange,
   getDayNumberFromText,
   calculateHourlyTimes,
-  parseTimeString,
+  extractTimeFromCell,
 } from './excelParseHelpers'
 
 /** Texto de célula (NBSP do Google/Excel → espaço normal). */
@@ -100,21 +99,7 @@ function findLivresHeaderBlocks(data: any[][]): LivresHeaderBlock[] {
 
 // ── Extração de horário ───────────────────────────────────
 
-function extractTime(horarioStr: string): { start: string; end: string } | null {
-  if (!horarioStr) return null
-  if (horarioStr.includes('-') || horarioStr.includes('–')) {
-    return parseTimeRange(horarioStr)
-  }
-  if (/\d/.test(horarioStr)) {
-    const s = parseTimeString(horarioStr)
-    const [h, m] = s.split(':').map(Number)
-    const endMin = h * 60 + m + 60
-    const eH = Math.min(Math.floor(endMin / 60), 23)
-    const eM = endMin % 60
-    return { start: s, end: `${String(eH).padStart(2, '0')}:${String(eM).padStart(2, '0')}` }
-  }
-  return null
-}
+const extractTime = extractTimeFromCell
 
 const RESERVED_RE = /^(disciplina|professor|local|info|turma|intervalo|hor[áa]rio|aula|classe|curso|data)$/i
 

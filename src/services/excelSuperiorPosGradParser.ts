@@ -10,11 +10,11 @@
 
 import type { ParsedClass } from './excelServiceTecnicos'
 import {
-  parseTimeString,
   parseTimeRange,
   isTurmaName,
   getDayNumberFromText,
   calculateHourlyTimes,
+  extractTimeFromCell,
 } from './excelParseHelpers'
 
 // ── Tipos internos ────────────────────────────────────────
@@ -216,25 +216,7 @@ function processAulaBlocks(
   return classes
 }
 
-/**
- * Extrai horário de início e fim de uma string
- * Aceita formato "8h - 9h" ou apenas "8h" (assume 1h de duração)
- */
-function extractTime(horarioStr: string): { start: string; end: string } | null {
-  if (!horarioStr) return null
-  if (horarioStr.includes('-') || horarioStr.includes('–')) {
-    return parseTimeRange(horarioStr)
-  }
-  if (/\d/.test(horarioStr)) {
-    const s = parseTimeString(horarioStr)
-    const [h, m] = s.split(':').map(Number)
-    const endMin = h * 60 + m + 60
-    const eH = Math.min(Math.floor(endMin / 60), 23)
-    const eM = endMin % 60
-    return { start: s, end: `${String(eH).padStart(2, '0')}:${String(eM).padStart(2, '0')}` }
-  }
-  return null
-}
+const extractTime = extractTimeFromCell
 
 // Palavras reservadas que não devem ser tratadas como siglas de disciplina
 const RESERVED_RE = /^(disciplina|professor|local|info|turma|intervalo|hor[áa]rio|aula|classe|data)$/i
@@ -376,12 +358,22 @@ export function parseSheetData(
         }
         const aulaNum = aulaMatch ? parseInt(aulaMatch[1], 10) : 0
 
-        // Extrair horário: tentar linha anterior, depois mesma linha, depois coluna aula
-        let horarioStr = String(aulaRowAbove[block.horarioCol] || '').trim()
-        if (!horarioStr || /^(Info|HORÁRIO|HORARIO|AULA)$/i.test(horarioStr)) {
-          horarioStr = String(disciplinaRow[block.horarioCol] || '').trim()
+        // Extrair horário: prioridade para a PRÓPRIA linha Disciplina (que contém aula+horário+info),
+        // porque a linha anterior pode ser INTERVALO ou Local de outra aula.
+        // Só usa aulaRowAbove se a linha atual não tiver horário válido.
+        const isAboveIntervalo = aulaRowAbove.some(
+          (cell: unknown) => /^intervalo$/i.test(String(cell ?? '').trim()),
+        )
+
+        let horarioStr = String(disciplinaRow[block.horarioCol] || '').trim()
+        if (!horarioStr || /^(Info|HORÁRIO|HORARIO|AULA|Disciplina)$/i.test(horarioStr)) {
+          // Tenta linha acima apenas se não for INTERVALO
+          if (!isAboveIntervalo) {
+            horarioStr = String(aulaRowAbove[block.horarioCol] || '').trim()
+          }
         }
-        if (!horarioStr || /^(Info|AULA)$/i.test(horarioStr)) {
+        // Último recurso: coluna de aula da linha acima
+        if (!horarioStr || /^(Info|AULA|HORÁRIO|HORARIO)$/i.test(horarioStr)) {
           horarioStr = String(aulaRowAbove[block.aulaCol] || '').trim()
         }
 

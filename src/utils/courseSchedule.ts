@@ -87,26 +87,45 @@ export function getRelativeDayLabel(date: Date): string {
   return dayNames[date.getDay()]
 }
 
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
+function minutesToTime(mins: number): string {
+  const h = Math.floor(mins / 60) % 24
+  const m = mins % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
 /**
- * Segunda a sábado da semana corrente (não usado na grade dos cards —
- * lá usamos sempre {@link getNextFiveDays} para “hoje + 4 dias úteis”).
- * Mantida para outros usos eventualmente.
+ * MBA e POS (especialização): ordena por dia e ordem da aula; aplica a **mesma** faixa
+ * (min início → max fim de todas as aulas do card) a cada linha — ex.: 09h00–16h00 ou 19h00–22h00.
  */
-export function getWeekDaysMondayToSaturday(): Date[] {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+export function prepareMbaCourseClassesForDisplay(classes: CompleteClass[]): CompleteClass[] {
+  if (classes.length === 0) return classes
 
-  // Find current week's Monday
-  const dayOfWeek = today.getDay() // 0=Sun, 1=Mon, ..., 6=Sat
-  const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-  const monday = addDays(today, -daysToSubtract)
+  const sorted = [...classes].sort((a, b) => {
+    if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek
+    const t =
+      timeToMinutes(a.startTime) - timeToMinutes(b.startTime) || a.id.localeCompare(b.id)
+    return t
+  })
 
-  // Return Mon(1) through Sat(6)
-  const days: Date[] = []
-  for (let i = 0; i < 6; i++) {
-    days.push(addDays(monday, i))
+  let minS = Infinity
+  let maxE = -Infinity
+  for (const c of sorted) {
+    minS = Math.min(minS, timeToMinutes(c.startTime))
+    maxE = Math.max(maxE, timeToMinutes(c.endTime))
   }
-  return days
+  const start = minutesToTime(minS)
+  const end = minutesToTime(maxE)
+
+  return sorted.map((c) => ({
+    ...c,
+    startTime: start,
+    endTime: end,
+  }))
 }
 
 // get all unique time slots from classes

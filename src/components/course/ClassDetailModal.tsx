@@ -50,6 +50,7 @@ export function ClassDetailModal({ classItem, dayLabel, isOpen, onClose }: Class
               </div>
               {/* Botão fechar */}
               <button
+                type="button"
                 onClick={onClose}
                 className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/20 active:scale-95 transition-all touch-manipulation"
               >
@@ -137,6 +138,7 @@ export function ClassDetailModal({ classItem, dayLabel, isOpen, onClose }: Class
           {/* Footer */}
           <div className="p-5 border-t border-gray-200 flex justify-end bg-[#f5f5f5]">
             <button
+              type="button"
               onClick={onClose}
               className="px-8 py-3 rounded-lg font-bold text-white bg-[#e30613] hover:bg-[#9a1915] transition-all duration-200 active:scale-95 touch-manipulation"
               style={{ minHeight: '48px' }}

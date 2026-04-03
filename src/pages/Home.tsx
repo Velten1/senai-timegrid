@@ -59,9 +59,9 @@ const modalities = [
     icon: BookOpen,
   },
   {
-    id: 'pos-graduacao',
-    name: 'Pós-Graduação',
-    description: 'Especialização e MBA',
+    id: 'especializacao',
+    name: 'Cursos de Especialização',
+    description: 'MBA e Pós-Graduação',
     icon: Award,
   },
 ]
@@ -157,6 +157,7 @@ function Home() {
               return (
                 <button
                   key={modality.id}
+                  type="button"
                   onClick={() => handleModalityClick(modality.id)}
                   className="
                     group relative bg-white rounded-lg overflow-hidden

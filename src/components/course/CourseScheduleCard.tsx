@@ -56,6 +56,7 @@ export function CourseScheduleCard({ course, classes, scheduleLayout = 'classic'
           {/* Botão ver calendário — vermelho sólido */}
           <div className="mt-auto">
             <button
+              type="button"
               onClick={() => setIsCourseModalOpen(true)}
               className="w-full px-6 py-3.5 rounded-lg text-base font-bold text-white bg-[#e30613] hover:bg-[#9a1915] transition-all duration-200 active:scale-95 touch-manipulation shadow-sm"
               style={{ minHeight: '48px' }}

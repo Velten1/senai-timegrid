@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { Course, CompleteClass } from '../../types'
 import { CourseIcon } from './CourseIcon'
 import senaiWhiteLogo from '../../images/senaiWHITE.png'
@@ -28,15 +28,18 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
     }
   }, [isOpen])
 
-  if (!isOpen) return null
+  const classesByDayOfWeek = useMemo(
+    () =>
+      classes.reduce<Record<number, CompleteClass[]>>((acc, classItem) => {
+        const list = acc[classItem.dayOfWeek] ?? []
+        list.push(classItem)
+        acc[classItem.dayOfWeek] = list
+        return acc
+      }, {}),
+    [classes],
+  )
 
-  // Agrupar aulas por dia da semana
-  const classesByDayOfWeek = classes.reduce((acc, classItem) => {
-    const dayOfWeek = classItem.dayOfWeek
-    if (!acc[dayOfWeek]) acc[dayOfWeek] = []
-    acc[dayOfWeek].push(classItem)
-    return acc
-  }, {} as Record<number, CompleteClass[]>)
+  if (!isOpen) return null
 
   const weekDays = [
     { dayOfWeek: 1, name: 'Segunda-feira', shortName: 'Seg' },
@@ -87,6 +90,7 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
               </div>
               {/* Fechar */}
               <button
+                type="button"
                 onClick={onClose}
                 className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/20 active:scale-95 transition-all touch-manipulation"
               >
@@ -106,6 +110,7 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
                 return (
                   <button
                     key={day.dayOfWeek}
+                    type="button"
                     onClick={() => setSelectedDay(day.dayOfWeek)}
                     className={`
                       px-4 lg:px-8 py-3 lg:py-3.5 rounded-lg font-bold text-sm lg:text-base transition-all duration-200
@@ -213,6 +218,7 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
           {/* Footer */}
           <div className="p-5 border-t border-gray-200 flex justify-end bg-[#f5f5f5]">
             <button
+              type="button"
               onClick={onClose}
               className="px-10 py-3.5 rounded-lg font-bold text-base text-white bg-[#e30613] hover:bg-[#9a1915] transition-all duration-200 active:scale-95 touch-manipulation"
               style={{ minHeight: '48px' }}

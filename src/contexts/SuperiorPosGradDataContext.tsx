@@ -1,11 +1,5 @@
 /**
- * Context React que fornece dados de Cursos Superiores e Pós-Graduação para toda a aplicação.
- * 
- * Este contexto:
- * - Usa o hook useExcelDataSuperiorPosGrad para carregar dados do Excel
- * - Adapta os dados parseados para o formato da aplicação
- * - Separa dados de superiores e pós-graduação
- * - Fornece dados, loading, erros e função de refetch para componentes filhos
+ * Context React: Cursos Superiores (abas SUP_*), MBA (MBA_*) e Pós (POS_*).
  */
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
@@ -13,7 +7,9 @@ import { useExcelDataSuperiorPosGrad } from '../hooks/useExcelDataSuperiorPosGra
 import { adaptExcelData } from '../utils/excelAdapter'
 import type { Course, Teacher, Room, Class, CompleteClass } from '../types'
 
-interface ModalityData {
+export interface SheetModalityBlock {
+  sheetName: string
+  label: string
   courses: Course[]
   teachers: Teacher[]
   rooms: Room[]
@@ -23,30 +19,36 @@ interface ModalityData {
 }
 
 interface SuperiorPosGradDataContextType {
-  superiores: ModalityData
-  posGraduacao: ModalityData
+  superiorSheets: SheetModalityBlock[]
+  mbaSheets: SheetModalityBlock[]
+  posSheets: SheetModalityBlock[]
   loading: boolean
   error: Error | null
   lastUpdate: Date | null
   refetch: () => void
 }
 
-const emptyData: ModalityData = {
-  courses: [],
-  teachers: [],
-  rooms: [],
-  classes: [],
-  completeClasses: [],
-  announcements: [],
+function toBlock(
+  sheetName: string,
+  label: string,
+  adapted: ReturnType<typeof adaptExcelData>,
+): SheetModalityBlock {
+  return {
+    sheetName,
+    label,
+    courses: adapted.courses,
+    teachers: adapted.teachers,
+    rooms: adapted.rooms,
+    classes: adapted.classes,
+    completeClasses: adapted.completeClasses,
+    announcements: adapted.announcements,
+  }
 }
 
 const SuperiorPosGradDataContext = createContext<
   SuperiorPosGradDataContextType | undefined
 >(undefined)
 
-/**
- * Provider: envolve a aplicação e fornece dados de Cursos Superiores e Pós-Graduação
- */
 export function SuperiorPosGradDataProvider({
   children,
 }: {
@@ -54,26 +56,48 @@ export function SuperiorPosGradDataProvider({
 }) {
   const { data, loading, error, lastUpdate, refetch } =
     useExcelDataSuperiorPosGrad({
-      pollingInterval: 30 * 1000, // 30 segundos
+      pollingInterval: 30 * 1000,
     })
 
-  // Adapta dados de Cursos Superiores (usa courseNameMap para nomes completos)
-  const superiores = useMemo(() => {
-    if (!data?.superiores) return emptyData
-    return adaptExcelData(data.superiores, 'superior', data.courseNameMap)
+  const superiorSheets = useMemo((): SheetModalityBlock[] => {
+    if (!data?.superiorSheets?.length) return []
+    return data.superiorSheets.map((s) =>
+      toBlock(
+        s.sheetName,
+        s.label,
+        adaptExcelData(s.data, 'superior', data.courseNameMap),
+      ),
+    )
   }, [data])
 
-  // Adapta dados de Pós-Graduação (usa courseNameMap para nomes completos)
-  const posGraduacao = useMemo(() => {
-    if (!data?.posGraduacao) return emptyData
-    return adaptExcelData(data.posGraduacao, 'pos-graduacao', data.courseNameMap)
+  const mbaSheets = useMemo((): SheetModalityBlock[] => {
+    if (!data?.mbaSheets?.length) return []
+    return data.mbaSheets.map((s) =>
+      toBlock(
+        s.sheetName,
+        s.label,
+        adaptExcelData(s.data, 'pos-graduacao', data.courseNameMap),
+      ),
+    )
+  }, [data])
+
+  const posSheets = useMemo((): SheetModalityBlock[] => {
+    if (!data?.posSheets?.length) return []
+    return data.posSheets.map((s) =>
+      toBlock(
+        s.sheetName,
+        s.label,
+        adaptExcelData(s.data, 'pos-graduacao', data.courseNameMap),
+      ),
+    )
   }, [data])
 
   return (
     <SuperiorPosGradDataContext.Provider
       value={{
-        superiores,
-        posGraduacao,
+        superiorSheets,
+        mbaSheets,
+        posSheets,
         loading,
         error,
         lastUpdate,
@@ -85,9 +109,6 @@ export function SuperiorPosGradDataProvider({
   )
 }
 
-/**
- * Hook para usar o contexto de dados de Cursos Superiores e Pós-Graduação
- */
 export function useSuperiorPosGradDataContext(): SuperiorPosGradDataContextType {
   const ctx = useContext(SuperiorPosGradDataContext)
   if (!ctx) {

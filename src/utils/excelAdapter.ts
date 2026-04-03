@@ -112,9 +112,9 @@ export function adaptExcelData(
     const teacher = teacherMap.get(pc.teacherName)
     const room = roomMap.get(pc.labRoom)
 
-    // Converter dayOfWeek: Excel usa 1-5 (Seg-Sex), JS usa 0-6 (Dom-Sab)
-    // Como Excel só tem Seg-Sex, mapeamos diretamente: Excel 1 → JS 1
-    const jsDayOfWeek = pc.dayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6
+    // Garantir que dayOfWeek está no intervalo válido JS (0–6)
+    const raw = pc.dayOfWeek
+    const jsDayOfWeek = (raw >= 0 && raw <= 6 ? raw : 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6
 
     // Buscar nome completo da disciplina no mapeamento (se disponível)
     const fullName = courseNameMap?.[pc.courseCode.toUpperCase()]
