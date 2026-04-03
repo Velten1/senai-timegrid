@@ -202,23 +202,23 @@ function Home() {
           <div className="h-1.5 bg-[#e30613]" />
 
           <div className="flex items-center gap-3 px-6 lg:px-8 pt-5 pb-3">
-            <div className="w-10 h-10 rounded-lg bg-[#e30613] flex items-center justify-center flex-shrink-0">
-              <Megaphone size={20} className="text-white" />
+            <div className="w-12 h-12 rounded-lg bg-[#e30613] flex items-center justify-center flex-shrink-0">
+              <Megaphone size={24} className="text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-800">Anúncios</h3>
-              <p className="text-xs text-[#878787]">Comunicados e avisos importantes</p>
+              <h3 className="text-xl lg:text-2xl font-bold text-gray-800">Anúncios</h3>
+              <p className="text-sm text-[#878787]">Comunicados e avisos importantes</p>
             </div>
           </div>
 
-          <div className="px-6 lg:px-8 pb-6 space-y-2.5">
+          <div className="px-6 lg:px-8 pb-6 space-y-3">
             {avisosLoading ? (
               <div className="flex items-center justify-center gap-2 py-6 text-[#878787]">
-                <Loader2 size={18} className="animate-spin" />
-                <span className="text-sm">Carregando avisos...</span>
+                <Loader2 size={22} className="animate-spin" />
+                <span className="text-base">Carregando avisos...</span>
               </div>
             ) : avisos.length === 0 ? (
-              <div className="text-center py-6 text-[#878787] text-sm">
+              <div className="text-center py-6 text-[#878787] text-base">
                 Nenhum aviso no momento.
               </div>
             ) : (
@@ -228,14 +228,16 @@ function Home() {
                 return (
                   <div
                     key={index}
-                    className="flex items-start gap-3 p-3.5 rounded-lg bg-[#ededed] hover:bg-gray-200/70 transition-colors"
+                    className="flex items-start gap-4 p-4 rounded-lg bg-[#ededed] hover:bg-gray-200/70 transition-colors"
                   >
-                    <Icon size={16} className="text-[#e30613] mt-0.5 flex-shrink-0" />
+                    <Icon size={22} className="text-[#e30613] mt-1 flex-shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-gray-700 leading-relaxed">{aviso.texto}</p>
+                      <p className="text-base lg:text-lg font-medium text-gray-900 leading-snug">
+                        {aviso.texto}
+                      </p>
                       {periodo && (
-                        <p className="mt-1.5 flex items-center gap-1.5 text-xs text-[#878787]">
-                          <Calendar size={12} className="flex-shrink-0 text-[#e30613]/80" />
+                        <p className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                          <Calendar size={16} className="flex-shrink-0 text-[#e30613]/80" />
                           <span>{periodo}</span>
                         </p>
                       )}
