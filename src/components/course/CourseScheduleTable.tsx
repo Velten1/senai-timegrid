@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import type { CompleteClass } from '../../types'
 import {
   getNextFiveDays,
-  getNextThreeDays,
   getRelativeDayLabel,
   getTimeSlots,
   getTechnicalDisplayTimeSlots,
@@ -74,7 +73,7 @@ function CourseScheduleTableMba({ classes }: { classes: CompleteClass[] }) {
   return (
     <>
       <div className="w-full">
-        <div className="grid grid-cols-6 gap-1.5">
+        <div className="grid grid-cols-7 gap-1.5">
           <div className="col-span-1">
             <div className="text-center text-xs font-bold text-[#878787] mb-1.5 uppercase tracking-wider">
               &nbsp;
@@ -91,7 +90,7 @@ function CourseScheduleTableMba({ classes }: { classes: CompleteClass[] }) {
 
         <div className="space-y-1.5">
           {rowIndices.map((rowIndex) => (
-            <div key={rowIndex} className="grid grid-cols-6 gap-1.5">
+            <div key={rowIndex} className="grid grid-cols-7 gap-1.5">
               <div className="col-span-1 flex flex-col items-center justify-center h-24 text-xs font-bold text-[#878787]">
                 <span>{displaySlot.startTime.replace(':', 'h')}</span>
                 <span className="text-[10px] text-gray-400">até</span>
@@ -195,7 +194,7 @@ function CourseScheduleTableMba({ classes }: { classes: CompleteClass[] }) {
 function CourseScheduleTableClassic({ classes }: { classes: CompleteClass[] }) {
   const timeSlots = useMemo(() => getTimeSlots(classes), [classes])
 
-  /** Sempre 5 colunas: hoje + próximos 4 dias úteis (domingo excluído). Não usar semana seg–sáb só porque há aula no sábado. */
+  /** Sempre 6 colunas fixas: Segunda a Sábado. */
   const days = useMemo(() => getNextFiveDays(), [])
 
   const [selectedClass, setSelectedClass] = useState<CompleteClass | null>(null)
@@ -216,7 +215,7 @@ function CourseScheduleTableClassic({ classes }: { classes: CompleteClass[] }) {
   return (
     <>
       <div className="w-full">
-        <div className="grid grid-cols-6 gap-1.5">
+        <div className="grid grid-cols-7 gap-1.5">
           <div className="col-span-1">
             <div className="text-center text-xs font-bold text-[#878787] mb-1.5 uppercase tracking-wider">&nbsp;</div>
             <div className="space-y-1.5">
@@ -317,7 +316,7 @@ function CourseScheduleTableClassic({ classes }: { classes: CompleteClass[] }) {
 
 function CourseScheduleTableTechnical({ classes }: { classes: CompleteClass[] }) {
   const timeSlots = useMemo(() => getTechnicalDisplayTimeSlots(classes), [classes])
-  const days = useMemo(() => getNextThreeDays(), [])
+  const days = useMemo(() => getNextFiveDays(), [])
 
   const [selectedClass, setSelectedClass] = useState<CompleteClass | null>(null)
   const [selectedDayLabel, setSelectedDayLabel] = useState('')

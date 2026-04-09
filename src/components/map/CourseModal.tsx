@@ -21,10 +21,8 @@ export function CourseModal({ course, classes, isOpen, onClose }: CourseModalPro
   useEffect(() => {
     if (isOpen) {
       const today = new Date().getDay()
-      const adjustedDay = today === 0 ? 1 : today
-      if (adjustedDay >= 1 && adjustedDay <= 6) {
-        setSelectedDay(adjustedDay)
-      }
+      const adjustedDay = today >= 1 && today <= 6 ? today : 1
+      setSelectedDay(adjustedDay)
     }
   }, [isOpen])
 

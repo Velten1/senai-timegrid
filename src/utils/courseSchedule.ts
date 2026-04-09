@@ -1,56 +1,22 @@
 import type { CompleteClass } from '../types'
 import { addDays } from './calendar'
 
-// get array with next 5 days starting from today (excluding Sundays)
-// returns array of date objects
+// Retorna sempre os dias fixos (Segunda a Sábado) da semana atual.
+// Observação: usamos `Date` apenas para obter `getDay()` (1..6) na grade.
 export function getNextFiveDays(): Date[] {
-  const days: Date[] = []
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  
-  let currentDay = today
-  let daysAdded = 0
-  
-  // Skip if today is Sunday, start from Monday
-  if (currentDay.getDay() === 0) {
-    currentDay = addDays(currentDay, 1)
-  }
-  
-  // Get next 5 days (excluding Sundays)
-  while (daysAdded < 5) {
-    // Skip Sundays (day 0)
-    if (currentDay.getDay() !== 0) {
-      days.push(new Date(currentDay))
-      daysAdded++
-    }
-    currentDay = addDays(currentDay, 1)
-  }
-  
-  return days
+
+  const dow = today.getDay() // 0=Dom, 1=Seg, ... 6=Sáb
+  const deltaToMonday = dow === 0 ? -6 : 1 - dow
+  const monday = addDays(today, deltaToMonday)
+
+  return [0, 1, 2, 3, 4, 5].map((i) => addDays(monday, i))
 }
 
-/** Próximos 3 dias úteis a partir de hoje (exclui domingos). Para grade compacta de cursos técnicos. */
+/** Mantido por compatibilidade: retorna Seg–Qua (3 primeiros dias fixos). */
 export function getNextThreeDays(): Date[] {
-  const days: Date[] = []
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  let currentDay = today
-  let daysAdded = 0
-
-  if (currentDay.getDay() === 0) {
-    currentDay = addDays(currentDay, 1)
-  }
-
-  while (daysAdded < 3) {
-    if (currentDay.getDay() !== 0) {
-      days.push(new Date(currentDay))
-      daysAdded++
-    }
-    currentDay = addDays(currentDay, 1)
-  }
-
-  return days
+  return getNextFiveDays().slice(0, 3)
 }
 
 /**
@@ -68,21 +34,8 @@ export function getTechnicalDisplayTimeSlots(
   return out
 }
 
-// get label for a day relative to today
-// returns "Hoje", "Amanhã" or day name (always shows day name from 3rd day onwards)
+// Retorna o nome do dia da semana (fixo), sem labels relativos (Hoje/Amanhã).
 export function getRelativeDayLabel(date: Date): string {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  
-  const targetDate = new Date(date)
-  targetDate.setHours(0, 0, 0, 0)
-  
-  const diffDays = Math.floor((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-  
-  if (diffDays === 0) return 'Hoje'
-  if (diffDays === 1) return 'Amanhã'
-  
-  // from 3rd day onwards, always return the day name
   const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
   return dayNames[date.getDay()]
 }
