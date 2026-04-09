@@ -3,6 +3,8 @@ import type { CompleteClass } from '../../types'
 import {
   getNextFiveDays,
   getRelativeDayLabel,
+  getNextThreeDaysDynamic,
+  getRelativeDayLabelDynamic,
   getTimeSlots,
   getTechnicalDisplayTimeSlots,
   getClassesForTimeSlotAndDay,
@@ -316,7 +318,7 @@ function CourseScheduleTableClassic({ classes }: { classes: CompleteClass[] }) {
 
 function CourseScheduleTableTechnical({ classes }: { classes: CompleteClass[] }) {
   const timeSlots = useMemo(() => getTechnicalDisplayTimeSlots(classes), [classes])
-  const days = useMemo(() => getNextFiveDays(), [])
+  const days = useMemo(() => getNextThreeDaysDynamic(), [])
 
   const [selectedClass, setSelectedClass] = useState<CompleteClass | null>(null)
   const [selectedDayLabel, setSelectedDayLabel] = useState('')
@@ -324,7 +326,7 @@ function CourseScheduleTableTechnical({ classes }: { classes: CompleteClass[] })
 
   const handleClassClick = (classItem: CompleteClass, day: Date) => {
     setSelectedClass(classItem)
-    setSelectedDayLabel(getRelativeDayLabel(day))
+    setSelectedDayLabel(getRelativeDayLabelDynamic(day))
     setIsModalOpen(true)
   }
 
@@ -361,7 +363,7 @@ function CourseScheduleTableTechnical({ classes }: { classes: CompleteClass[] })
 
         {/* 3 linhas: dia + 5 células */}
         {days.map((day, dayIndex) => {
-          const label = getRelativeDayLabel(day)
+          const label = getRelativeDayLabelDynamic(day)
           return (
             <div key={dayIndex} className="grid grid-cols-6 gap-1.5 mb-1.5 last:mb-0">
               <div className="flex items-center justify-center min-h-24 px-1">

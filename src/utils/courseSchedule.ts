@@ -19,6 +19,31 @@ export function getNextThreeDays(): Date[] {
   return getNextFiveDays().slice(0, 3)
 }
 
+/** Versão dinâmica (como era antes): próximos 3 dias a partir de hoje (domingo excluído). */
+export function getNextThreeDaysDynamic(): Date[] {
+  const days: Date[] = []
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  let currentDay = today
+  let daysAdded = 0
+
+  // Se hoje é domingo, começar na segunda
+  if (currentDay.getDay() === 0) {
+    currentDay = addDays(currentDay, 1)
+  }
+
+  while (daysAdded < 3) {
+    if (currentDay.getDay() !== 0) {
+      days.push(new Date(currentDay))
+      daysAdded++
+    }
+    currentDay = addDays(currentDay, 1)
+  }
+
+  return days
+}
+
 /**
  * Até 5 faixas de horário para colunas (transp.vista técnica).
  * Preenche com null se o curso tiver menos de 5 horários distintos.
@@ -38,6 +63,24 @@ export function getTechnicalDisplayTimeSlots(
 export function getRelativeDayLabel(date: Date): string {
   const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
   return dayNames[date.getDay()]
+}
+
+/** Versão dinâmica (como era antes): Hoje / Amanhã / nome do dia. */
+export function getRelativeDayLabelDynamic(date: Date): string {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const targetDate = new Date(date)
+  targetDate.setHours(0, 0, 0, 0)
+
+  const diffDays = Math.floor(
+    (targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+  )
+
+  if (diffDays === 0) return 'Hoje'
+  if (diffDays === 1) return 'Amanhã'
+
+  return getRelativeDayLabel(date)
 }
 
 function timeToMinutes(t: string): number {
