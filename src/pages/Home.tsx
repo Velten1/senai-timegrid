@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import senaiWhiteLogo from '../images/senaiWHITE.png'
 import senaiRedLogo from '../images/senaiRED.png'
+import fiespRedLogo from '../images/FIESP_rgb_Color.svg'
 import { useAvisosDataContext } from '../contexts/AvisosDataContext'
 import type { Aviso } from '../services/excelServiceAvisos'
 
@@ -102,7 +103,7 @@ function Home() {
             <img src={senaiWhiteLogo} alt="SENAI" className="h-8 lg:h-10" />
             <span className="hidden sm:inline text-white/50 text-sm font-light">|</span>
             <span className="hidden sm:inline text-white/90 text-sm font-medium">
-              Grade de Horários
+              Campos Vila Mariana
             </span>
           </div>
 
@@ -122,13 +123,14 @@ function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 text-center">
           {/* Logo SENAI vermelha sobre fundo branco (manual de marca) */}
           <div className="flex justify-center mb-4">
+            <img src={fiespRedLogo} alt='FIESP' className="h-14 mr-8 sm:h-16 lg:h-20"/>
             <img src={senaiRedLogo} alt="SENAI" className="h-14 sm:h-16 lg:h-20" />
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-light tracking-tight text-gray-800 mb-3">
             Grade de Horários
           </h2>
           <p className="text-base lg:text-lg text-[#878787] max-w-lg mx-auto leading-relaxed">
-            Sistema de Grade de Horários e Localização de Cursos
+            Campos Senai Vila Mariana
           </p>
           <div className="mt-6 flex justify-center">
             <div className="h-1 w-20 bg-[#e30613] rounded-full" />
@@ -257,7 +259,7 @@ function Home() {
           {/* Logo SENAI branca no footer vermelho */}
           <img src={senaiWhiteLogo} alt="SENAI" className="h-7" />
           <p className="text-white/80 text-xs">
-            Grade de Horários | Sistema de Grade de Horários e Localização de Cursos
+            Campos Vila Mariana | Todos os direitos reservados
           </p>
         </div>
       </footer>
