@@ -103,7 +103,7 @@ function Home() {
             <img src={senaiWhiteLogo} alt="SENAI" className="h-8 lg:h-10" />
             <span className="hidden sm:inline text-white/50 text-sm font-light">|</span>
             <span className="hidden sm:inline text-white/90 text-sm font-medium">
-              Campos Vila Mariana
+              Campus Vila Mariana
             </span>
           </div>
 
@@ -130,7 +130,7 @@ function Home() {
             Grade de Horários
           </h2>
           <p className="text-base lg:text-lg text-[#878787] max-w-lg mx-auto leading-relaxed">
-            Campos Senai Vila Mariana
+            Campus Senai Vila Mariana
           </p>
           <div className="mt-6 flex justify-center">
             <div className="h-1 w-20 bg-[#e30613] rounded-full" />
@@ -259,7 +259,7 @@ function Home() {
           {/* Logo SENAI branca no footer vermelho */}
           <img src={senaiWhiteLogo} alt="SENAI" className="h-7" />
           <p className="text-white/80 text-xs">
-            Campos Vila Mariana | Todos os direitos reservados
+            Campus Vila Mariana | Todos os direitos reservados
           </p>
         </div>
       </footer>
